@@ -1,4 +1,6 @@
 import { Navigate, Outlet } from "react-router-dom";
+import type { ReactNode } from "react";
+import type { Role } from "../../types";
 import { useAuth } from "./AuthProvider";
 
 export function ProtectedRoute() {
@@ -15,3 +17,12 @@ export function ProtectedRoute() {
   return <Outlet />;
 }
 
+export function RoleRoute({ roles, children }: { roles: Role[]; children: ReactNode }) {
+  const { user } = useAuth();
+
+  if (!user || !roles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <>{children}</>;
+}

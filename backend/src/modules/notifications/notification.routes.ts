@@ -5,6 +5,7 @@ import { authorize } from "../../middleware/authorize.middleware.js";
 import { validate } from "../../middleware/validate.middleware.js";
 import { getIo } from "../../realtime/socket.js";
 import { asyncHandler } from "../../utils/async-handler.js";
+import { HttpError } from "../../utils/http-error.js";
 import { roles } from "../../utils/roles.js";
 
 export const notificationRoutes = Router();
@@ -38,11 +39,20 @@ notificationRoutes.post(
   authorize("admin", "instructor"),
   validate(createNotificationSchema),
   asyncHandler(async (req, res) => {
-    const notification = await Notification.create(req.body);
-    if (req.body.userId) {
-      getIo()?.to(`user:${req.body.userId}`).emit("notification:new", notification);
-    } else if (req.body.role) {
-      getIo()?.to(`role:${req.body.role}`).emit("notification:new", notification);
+    const payload = { ...req.body };
+
+    if (req.user?.role === "instructor") {
+      if (payload.role && payload.role !== "student") {
+        throw new HttpError(403, "Instructors can only send notifications to students");
+      }
+      payload.role = payload.userId ? undefined : "student";
+    }
+
+    const notification = await Notification.create(payload);
+    if (payload.userId) {
+      getIo()?.to(`user:${payload.userId}`).emit("notification:new", notification);
+    } else if (payload.role) {
+      getIo()?.to(`role:${payload.role}`).emit("notification:new", notification);
     } else {
       getIo()?.emit("notification:new", notification);
     }
@@ -58,4 +68,3 @@ notificationRoutes.patch(
     res.json(notification);
   })
 );
-

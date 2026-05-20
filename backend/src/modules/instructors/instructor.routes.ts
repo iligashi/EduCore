@@ -31,6 +31,7 @@ const updateInstructorSchema = idParamsSchema.extend({
 
 instructorRoutes.get(
   "/",
+  authorize("admin", "instructor"),
   asyncHandler(async (req, res) => {
     const { pageSize, offset, page } = getPagination(req.query);
     const search = `%${String(req.query.search ?? "")}%`;
@@ -149,4 +150,3 @@ instructorRoutes.delete(
     res.status(204).send();
   })
 );
-

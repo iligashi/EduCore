@@ -1,12 +1,11 @@
 import { z } from "zod";
-import { roles } from "../../utils/roles.js";
 
 export const registerSchema = z.object({
   body: z.object({
     fullName: z.string().min(2).max(120),
     email: z.string().email().max(160),
     password: z.string().min(8).max(100),
-    role: z.enum(roles).default("student"),
+    role: z.literal("student").default("student"),
     studentProfile: z
       .object({
         studentCode: z.string().min(2).max(40).optional(),
@@ -34,4 +33,3 @@ export const refreshSchema = z.object({
     refreshToken: z.string().min(20).optional()
   })
 });
-

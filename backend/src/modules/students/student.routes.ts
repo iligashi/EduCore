@@ -35,10 +35,21 @@ const updateStudentSchema = idParamsSchema.extend({
 
 studentRoutes.get(
   "/",
+  authorize("admin", "instructor"),
   asyncHandler(async (req, res) => {
     const { pageSize, offset, page } = getPagination(req.query);
     const search = `%${String(req.query.search ?? "")}%`;
-    const studentFilter = req.user?.role === "student" ? "AND users.id = :userId" : "";
+    const instructorFilter =
+      req.user?.role === "instructor"
+        ? `AND EXISTS (
+             SELECT 1
+             FROM enrollments
+             JOIN classes ON classes.id = enrollments.class_id
+             JOIN courses ON courses.id = classes.course_id
+             JOIN instructors ON instructors.id = courses.instructor_id
+             WHERE enrollments.student_id = students.id AND instructors.user_id = :userId
+           )`
+        : "";
     const data = await rows(
       `SELECT students.id, students.student_code AS studentCode, students.department, students.semester,
               users.id AS userId, users.full_name AS fullName, users.email, users.status,
@@ -46,7 +57,7 @@ studentRoutes.get(
        FROM students
        JOIN users ON users.id = students.user_id
        WHERE (users.full_name LIKE :search OR users.email LIKE :search OR students.student_code LIKE :search OR students.department LIKE :search)
-       ${studentFilter}
+       ${instructorFilter}
        ORDER BY users.full_name
        LIMIT :pageSize OFFSET :offset`,
       { search, pageSize, offset, userId: req.user?.id }
@@ -56,7 +67,7 @@ studentRoutes.get(
        FROM students
        JOIN users ON users.id = students.user_id
        WHERE (users.full_name LIKE :search OR users.email LIKE :search OR students.student_code LIKE :search OR students.department LIKE :search)
-       ${studentFilter}`,
+       ${instructorFilter}`,
       { search, userId: req.user?.id }
     );
     res.json({ data, meta: { page, pageSize, total: count.total } });
@@ -164,4 +175,3 @@ studentRoutes.delete(
     res.status(204).send();
   })
 );
-

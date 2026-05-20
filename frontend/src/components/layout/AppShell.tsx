@@ -9,32 +9,41 @@ import {
   LogOut,
   Megaphone,
   Search,
-  Settings,
   Users
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useAuth } from "../../features/auth/AuthProvider";
 import { useSocket } from "../../hooks/useSocket";
 import { cn } from "../../utils/cn";
 import { Button } from "../ui/Button";
+import type { Role } from "../../types";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "instructor", "student"] },
-  { to: "/students", label: "Students", icon: Users, roles: ["admin", "instructor", "student"] },
-  { to: "/instructors", label: "Instructors", icon: GraduationCap, roles: ["admin", "instructor"] },
+  { to: "/students", label: "Students", icon: Users, roles: ["admin"] },
+  { to: "/instructors", label: "Instructors", icon: GraduationCap, roles: ["admin"] },
   { to: "/courses", label: "Courses", icon: BookOpen, roles: ["admin", "instructor", "student"] },
+  { to: "/content", label: "Content", icon: BookOpen, roles: ["student"] },
   { to: "/assignments", label: "Assignments", icon: ClipboardCheck, roles: ["admin", "instructor", "student"] },
-  { to: "/attendance", label: "Attendance", icon: Gauge, roles: ["admin", "instructor", "student"] },
-  { to: "/reports", label: "Reports", icon: FileBarChart, roles: ["admin", "instructor"] },
+  { to: "/attendance", label: "Attendance", icon: Gauge, roles: ["admin", "instructor"] },
+  { to: "/reports", label: "Reports", icon: FileBarChart, roles: ["admin"] },
   { to: "/cms", label: "CMS", icon: Megaphone, roles: ["admin", "instructor"] },
   { to: "/notifications", label: "Notifications", icon: Bell, roles: ["admin", "instructor", "student"] },
-  { to: "/search", label: "Search", icon: Search, roles: ["admin", "instructor", "student"] }
-] as const;
+  { to: "/search", label: "Search", icon: Search, roles: ["admin", "instructor"] }
+] satisfies { to: string; label: string; icon: LucideIcon; roles: Role[] }[];
+
+function navLabel(label: string, role: Role) {
+  if (label !== "Dashboard") return label;
+  if (role === "student") return "My Courses";
+  if (role === "instructor") return "Teaching";
+  return "Dashboard";
+}
 
 export function AppShell() {
   const { user, logout } = useAuth();
   useSocket(Boolean(user));
-  const visibleItems = navItems.filter((item) => (item.roles as readonly string[]).includes(user!.role));
+  const visibleItems = navItems.filter((item) => item.roles.includes(user!.role));
 
   return (
     <div className="min-h-screen bg-background">
@@ -61,7 +70,7 @@ export function AppShell() {
               }
             >
               <item.icon size={18} />
-              {item.label}
+              {navLabel(item.label, user!.role)}
             </NavLink>
           ))}
         </nav>
@@ -76,9 +85,11 @@ export function AppShell() {
             <NavLink to="/notifications" className="rounded-md p-2 text-slate-500 hover:bg-muted hover:text-slate-900" title="Notifications">
               <Bell size={19} />
             </NavLink>
-            <NavLink to="/cms" className="rounded-md p-2 text-slate-500 hover:bg-muted hover:text-slate-900" title="Settings">
-              <Settings size={19} />
-            </NavLink>
+            {user?.role !== "student" ? (
+              <NavLink to="/cms" className="rounded-md p-2 text-slate-500 hover:bg-muted hover:text-slate-900" title="CMS">
+                <Megaphone size={19} />
+              </NavLink>
+            ) : null}
             <Button variant="outline" size="sm" onClick={logout}>
               <LogOut size={16} />
               Logout
@@ -99,7 +110,7 @@ export function AppShell() {
               title={item.label}
             >
               <item.icon size={17} />
-              <span className="max-w-full truncate">{item.label}</span>
+              <span className="max-w-full truncate">{navLabel(item.label, user!.role)}</span>
             </NavLink>
           ))}
         </nav>

@@ -37,7 +37,7 @@ const exportQueries: Record<string, string> = {
 
 importExportRoutes.get(
   "/exports/:entity",
-  authorize("admin", "instructor"),
+  authorize("admin"),
   asyncHandler(async (req, res) => {
     const entity = String(req.params.entity);
     const query = exportQueries[entity];

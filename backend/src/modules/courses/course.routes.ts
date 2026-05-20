@@ -41,6 +41,22 @@ async function resolveInstructorId(user: Express.UserClaims, bodyInstructorId?: 
   return instructor.id;
 }
 
+async function assertCourseWritable(user: Express.UserClaims, courseId: string) {
+  if (user.role === "admin") return;
+
+  const [course] = await rows<{ id: string }>(
+    `SELECT courses.id
+     FROM courses
+     JOIN instructors ON instructors.id = courses.instructor_id
+     WHERE courses.id = :courseId AND instructors.user_id = :userId`,
+    { courseId, userId: user.id }
+  );
+
+  if (!course) {
+    throw new HttpError(403, "You can only manage your own courses");
+  }
+}
+
 courseRoutes.get(
   "/",
   asyncHandler(async (req, res) => {
@@ -114,6 +130,8 @@ courseRoutes.put(
   authorize("admin", "instructor"),
   validate(idParamsSchema.extend({ body: courseBody.partial() })),
   asyncHandler(async (req, res) => {
+    await assertCourseWritable(req.user!, String(req.params.id));
+    const instructorId = req.user!.role === "admin" ? req.body.instructorId : undefined;
     await execute(
       `UPDATE courses
        SET title = COALESCE(:title, title),
@@ -128,7 +146,7 @@ courseRoutes.put(
         description: req.body.description,
         level: req.body.level,
         status: req.body.status,
-        instructorId: req.body.instructorId
+        instructorId
       }
     );
     const [course] = await rows("SELECT * FROM courses WHERE id = :id", { id: req.params.id });
@@ -178,10 +196,31 @@ courseRoutes.get(
   "/:id/classes",
   validate(idParamsSchema),
   asyncHandler(async (req, res) => {
+    const instructorFilter =
+      req.user?.role === "instructor"
+        ? `AND EXISTS (
+             SELECT 1 FROM instructors
+             WHERE instructors.id = courses.instructor_id AND instructors.user_id = :userId
+           )`
+        : "";
+    const studentFilter =
+      req.user?.role === "student"
+        ? `AND EXISTS (
+             SELECT 1 FROM enrollments
+             JOIN students ON students.id = enrollments.student_id
+             WHERE enrollments.class_id = classes.id AND students.user_id = :userId
+           )`
+        : "";
     const classes = await rows(
-      `SELECT id, course_id AS courseId, room, schedule, starts_at AS startsAt, ends_at AS endsAt
-       FROM classes WHERE course_id = :id ORDER BY starts_at`,
-      { id: req.params.id }
+      `SELECT classes.id, classes.course_id AS courseId, classes.room, classes.schedule,
+              classes.starts_at AS startsAt, classes.ends_at AS endsAt
+       FROM classes
+       JOIN courses ON courses.id = classes.course_id
+       WHERE classes.course_id = :id
+       ${instructorFilter}
+       ${studentFilter}
+       ORDER BY classes.starts_at`,
+      { id: req.params.id, userId: req.user?.id }
     );
     res.json({ data: classes });
   })
@@ -192,6 +231,7 @@ courseRoutes.post(
   authorize("admin", "instructor"),
   validate(idParamsSchema.extend({ body: classBody })),
   asyncHandler(async (req, res) => {
+    await assertCourseWritable(req.user!, String(req.params.id));
     const id = uuid();
     await execute(
       `INSERT INTO classes (id, course_id, room, schedule, starts_at, ends_at)

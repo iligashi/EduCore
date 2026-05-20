@@ -16,7 +16,7 @@ const loginSchema = z.object({
 
 const registerSchema = loginSchema.extend({
   fullName: z.string().min(2),
-  role: z.enum(["admin", "instructor", "student"]).default("student")
+  role: z.literal("student").default("student")
 });
 
 type LoginInput = z.infer<typeof loginSchema>;
@@ -117,14 +117,7 @@ export function LoginPage() {
                   <label className="mb-1 block text-sm font-medium">Password</label>
                   <Input type="password" {...registerForm.register("password")} />
                 </div>
-                <div>
-                  <label className="mb-1 block text-sm font-medium">Role</label>
-                  <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...registerForm.register("role")}>
-                    <option value="student">Student</option>
-                    <option value="instructor">Instructor</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
+                <input type="hidden" value="student" {...registerForm.register("role")} />
                 {error ? <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
                 <Button className="w-full" disabled={registerForm.formState.isSubmitting}>
                   Create account
@@ -137,4 +130,3 @@ export function LoginPage() {
     </div>
   );
 }
-

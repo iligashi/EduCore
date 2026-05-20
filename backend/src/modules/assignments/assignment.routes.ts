@@ -28,6 +28,54 @@ async function currentStudentId(userId: string) {
   return student.id;
 }
 
+async function assertCourseWritable(user: Express.UserClaims, courseId: string) {
+  if (user.role === "admin") return;
+
+  const [course] = await rows<{ id: string }>(
+    `SELECT courses.id
+     FROM courses
+     JOIN instructors ON instructors.id = courses.instructor_id
+     WHERE courses.id = :courseId AND instructors.user_id = :userId`,
+    { courseId, userId: user.id }
+  );
+
+  if (!course) {
+    throw new HttpError(403, "You can only manage assignments for your own courses");
+  }
+}
+
+async function assertAssignmentWritable(user: Express.UserClaims, assignmentId: string) {
+  if (user.role === "admin") return;
+
+  const [assignment] = await rows<{ id: string }>(
+    `SELECT assignments.id
+     FROM assignments
+     JOIN courses ON courses.id = assignments.course_id
+     JOIN instructors ON instructors.id = courses.instructor_id
+     WHERE assignments.id = :assignmentId AND instructors.user_id = :userId`,
+    { assignmentId, userId: user.id }
+  );
+
+  if (!assignment) {
+    throw new HttpError(403, "You can only manage assignments for your own courses");
+  }
+}
+
+async function assertStudentCanSubmit(studentId: string, assignmentId: string) {
+  const [assignment] = await rows<{ id: string }>(
+    `SELECT assignments.id
+     FROM assignments
+     JOIN classes ON classes.course_id = assignments.course_id
+     JOIN enrollments ON enrollments.class_id = classes.id
+     WHERE assignments.id = :assignmentId AND enrollments.student_id = :studentId`,
+    { assignmentId, studentId }
+  );
+
+  if (!assignment) {
+    throw new HttpError(403, "Students can only submit assignments for enrolled courses");
+  }
+}
+
 assignmentRoutes.get(
   "/",
   asyncHandler(async (req, res) => {
@@ -78,6 +126,7 @@ assignmentRoutes.post(
   authorize("admin", "instructor"),
   validate(z.object({ body: assignmentBody })),
   asyncHandler(async (req, res) => {
+    await assertCourseWritable(req.user!, req.body.courseId);
     const id = uuid();
     await execute(
       `INSERT INTO assignments (id, course_id, title, description, due_date, points)
@@ -110,6 +159,10 @@ assignmentRoutes.put(
   authorize("admin", "instructor"),
   validate(idParamsSchema.extend({ body: assignmentBody.partial() })),
   asyncHandler(async (req, res) => {
+    await assertAssignmentWritable(req.user!, String(req.params.id));
+    if (req.body.courseId) {
+      await assertCourseWritable(req.user!, req.body.courseId);
+    }
     await execute(
       `UPDATE assignments
        SET course_id = COALESCE(:courseId, course_id),
@@ -183,6 +236,7 @@ assignmentRoutes.post(
 
     const studentId = req.user!.role === "student" ? await currentStudentId(req.user!.id) : parsed.studentId;
     if (!studentId) throw new HttpError(422, "studentId is required for admin submissions");
+    await assertStudentCanSubmit(studentId, parsed.assignmentId);
 
     const fileUrl = req.file ? `/uploads/${req.file.filename}` : String(req.body.fileUrl ?? "");
     if (!fileUrl) throw new HttpError(422, "Submission file is required");
@@ -217,6 +271,21 @@ assignmentRoutes.put(
     })
   ),
   asyncHandler(async (req, res) => {
+    if (req.user!.role === "instructor") {
+      const [submission] = await rows<{ id: string }>(
+        `SELECT submissions.id
+         FROM submissions
+         JOIN assignments ON assignments.id = submissions.assignment_id
+         JOIN courses ON courses.id = assignments.course_id
+         JOIN instructors ON instructors.id = courses.instructor_id
+         WHERE submissions.id = :id AND instructors.user_id = :userId`,
+        { id: req.params.id, userId: req.user!.id }
+      );
+      if (!submission) {
+        throw new HttpError(403, "You can only grade submissions for your own courses");
+      }
+    }
+
     await execute(
       `UPDATE submissions
        SET grade = :grade, feedback = :feedback, graded_at = CURRENT_TIMESTAMP
@@ -246,4 +315,3 @@ assignmentRoutes.put(
     res.json(updated);
   })
 );
-
