@@ -1,0 +1,104 @@
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bell, Send } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { Badge } from "../components/ui/Badge";
+import { Button } from "../components/ui/Button";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
+import { Input, Textarea } from "../components/ui/Input";
+import { SectionHeader } from "../components/ui/SectionHeader";
+import { useAuth } from "../features/auth/AuthProvider";
+import { api } from "../services/api";
+import type { NotificationItem } from "../types";
+
+const schema = z.object({
+  role: z.enum(["admin", "instructor", "student"]).optional().or(z.literal("")),
+  title: z.string().min(2),
+  message: z.string().min(2),
+  type: z.string().default("system")
+});
+
+export function NotificationsPage() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: { type: "system" }
+  });
+  const { data } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => api.get<{ data: NotificationItem[] }>("/notifications")
+  });
+  const createMutation = useMutation({
+    mutationFn: (values: z.infer<typeof schema>) => api.post("/notifications", { ...values, role: values.role || undefined }),
+    onSuccess: () => {
+      form.reset({ type: "system" });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    }
+  });
+  const markRead = useMutation({
+    mutationFn: (id: string) => api.patch(`/notifications/${id}/read`, {}),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] })
+  });
+
+  return (
+    <>
+      <SectionHeader title="Notifications" description="Realtime assignment alerts, grade updates, announcements, and system messages." />
+      <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
+        {user?.role !== "student" ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Send Notification</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form className="space-y-3" onSubmit={form.handleSubmit((values) => createMutation.mutate(values))}>
+                <Input placeholder="Title" {...form.register("title")} />
+                <Textarea placeholder="Message" {...form.register("message")} />
+                <Input placeholder="Type" {...form.register("type")} />
+                <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...form.register("role")}>
+                  <option value="">Everyone</option>
+                  <option value="admin">Admins</option>
+                  <option value="instructor">Instructors</option>
+                  <option value="student">Students</option>
+                </select>
+                <Button className="w-full" disabled={createMutation.isPending}>
+                  <Send size={16} />
+                  Send
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        ) : null}
+        <Card className={user?.role !== "student" ? "" : "xl:col-span-2"}>
+          <CardHeader>
+            <CardTitle>Inbox</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {(data?.data ?? []).map((item) => (
+                <div key={item._id} className="flex flex-col gap-3 rounded-md border border-border p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <Bell size={16} className="text-primary" />
+                      <p className="font-medium">{item.title}</p>
+                      <Badge tone={item.readAt ? "neutral" : "info"}>{item.type}</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-600">{item.message}</p>
+                    <p className="mt-1 text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</p>
+                  </div>
+                  {!item.readAt ? (
+                    <Button variant="outline" size="sm" onClick={() => markRead.mutate(item._id)}>
+                      Mark read
+                    </Button>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </>
+  );
+}
+
