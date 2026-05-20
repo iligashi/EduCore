@@ -21,6 +21,39 @@ export const Lesson = model(
   )
 );
 
+export const ClassDay = model(
+  "ClassDay",
+  new Schema(
+    {
+      classId: { type: String, required: true, index: true },
+      courseId: { type: String, required: true, index: true },
+      dayNumber: { type: Number, required: true },
+      title: { type: String, required: true },
+      content: { type: String, default: "" },
+      blocks: { type: [Schema.Types.Mixed], default: [] },
+      assets: { type: [String], default: [] },
+      published: { type: Boolean, default: false },
+      updatedBy: { type: String }
+    },
+    commonOptions
+  )
+);
+
+ClassDay.schema.index({ classId: 1, dayNumber: 1 }, { unique: true });
+
+export const ClassBackup = model(
+  "ClassBackup",
+  new Schema(
+    {
+      classId: { type: String, required: true, index: true },
+      title: { type: String, required: true },
+      days: { type: [Schema.Types.Mixed], default: [] },
+      createdBy: { type: String, required: true }
+    },
+    commonOptions
+  )
+);
+
 export const Notification = model(
   "Notification",
   new Schema(

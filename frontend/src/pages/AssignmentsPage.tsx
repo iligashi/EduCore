@@ -12,7 +12,7 @@ import { SectionHeader } from "../components/ui/SectionHeader";
 import { Table, Td, Th } from "../components/ui/Table";
 import { useAuth } from "../features/auth/AuthProvider";
 import { api } from "../services/api";
-import type { ApiList, Assignment, Course } from "../types";
+import type { ApiList, Assignment, ClassDay, ClassRecord, Course } from "../types";
 
 interface Submission {
   id: string;
@@ -26,7 +26,9 @@ interface Submission {
 }
 
 const assignmentSchema = z.object({
-  courseId: z.string().uuid(),
+  courseId: z.string().uuid().optional().or(z.literal("")),
+  classId: z.string().uuid().optional().or(z.literal("")),
+  dayId: z.string().optional().or(z.literal("")),
   title: z.string().min(2),
   description: z.string().optional(),
   dueDate: z.string().min(1),
@@ -42,6 +44,7 @@ export function AssignmentsPage() {
     resolver: zodResolver(assignmentSchema),
     defaultValues: { points: 100 }
   });
+  const selectedClassId = assignmentForm.watch("classId");
   const gradeForm = useForm<{ submissionId: string; grade: number; feedback: string }>({
     defaultValues: { feedback: "" }
   });
@@ -50,13 +53,25 @@ export function AssignmentsPage() {
     queryFn: () => api.get<ApiList<Assignment>>("/assignments")
   });
   const { data: courses } = useQuery({ queryKey: ["courses"], queryFn: () => api.get<ApiList<Course>>("/courses") });
+  const { data: classes } = useQuery({ queryKey: ["classes"], queryFn: () => api.get<{ data: ClassRecord[] }>("/courses/classes/all") });
+  const { data: days } = useQuery({
+    queryKey: ["class-days", selectedClassId],
+    queryFn: () => api.get<{ data: ClassDay[] }>(`/courses/classes/${selectedClassId}/days`),
+    enabled: Boolean(selectedClassId)
+  });
   const { data: submissions } = useQuery({
     queryKey: ["submissions"],
     queryFn: () => api.get<{ data: Submission[] }>("/assignments/submissions")
   });
   const createAssignment = useMutation({
     mutationFn: (values: z.infer<typeof assignmentSchema>) =>
-      api.post<Assignment>("/assignments", { ...values, dueDate: new Date(values.dueDate).toISOString() }),
+      api.post<Assignment>("/assignments", {
+        ...values,
+        courseId: values.courseId || undefined,
+        classId: values.classId || undefined,
+        dayId: values.dayId || undefined,
+        dueDate: new Date(values.dueDate).toISOString()
+      }),
     onSuccess: () => {
       assignmentForm.reset({ points: 100 });
       queryClient.invalidateQueries({ queryKey: ["assignments"] });
@@ -99,11 +114,29 @@ export function AssignmentsPage() {
               </CardHeader>
               <CardContent>
                 <form className="space-y-3" onSubmit={assignmentForm.handleSubmit((values) => createAssignment.mutate(values))}>
-                  <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...assignmentForm.register("courseId")}>
-                    <option value="">Select course</option>
-                    {(courses?.data ?? []).map((course) => (
-                      <option key={course.id} value={course.id}>
-                        {course.title}
+                  {user?.role === "admin" ? (
+                    <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...assignmentForm.register("courseId")}>
+                      <option value="">Course-level assignment</option>
+                      {(courses?.data ?? []).map((course) => (
+                        <option key={course.id} value={course.id}>
+                          {course.title}
+                        </option>
+                      ))}
+                    </select>
+                  ) : null}
+                  <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...assignmentForm.register("classId")}>
+                    <option value="">Select assigned class</option>
+                    {(classes?.data ?? []).map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.courseTitle} / {item.room}
+                      </option>
+                    ))}
+                  </select>
+                  <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...assignmentForm.register("dayId")}>
+                    <option value="">Select day</option>
+                    {(days?.data ?? []).map((day) => (
+                      <option key={day._id} value={day._id}>
+                        Day {day.dayNumber}: {day.title}
                       </option>
                     ))}
                   </select>
@@ -181,8 +214,9 @@ export function AssignmentsPage() {
                 <thead>
                   <tr>
                     <Th>Title</Th>
-                    <Th>Course</Th>
-                    <Th>Due</Th>
+                  <Th>Course</Th>
+                  <Th>Class</Th>
+                  <Th>Due</Th>
                     <Th>Points</Th>
                   </tr>
                 </thead>
@@ -194,6 +228,7 @@ export function AssignmentsPage() {
                         <div className="text-xs text-slate-500">{assignment.description}</div>
                       </Td>
                       <Td>{assignment.courseTitle}</Td>
+                      <Td>{assignment.classRoom ?? ""}</Td>
                       <Td>{new Date(assignment.dueDate).toLocaleString()}</Td>
                       <Td>{assignment.points}</Td>
                     </tr>
@@ -245,4 +280,3 @@ export function AssignmentsPage() {
     </>
   );
 }
-

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { v4 as uuid } from "uuid";
+import { ClassDay } from "../../database/mongo.models.js";
 import { authorize } from "../../middleware/authorize.middleware.js";
 import { validate } from "../../middleware/validate.middleware.js";
 import { execute, rows } from "../../database/mysql.js";
@@ -12,6 +13,7 @@ export const attendanceRoutes = Router();
 const attendanceBody = z.object({
   studentId: z.string().uuid(),
   classId: z.string().uuid(),
+  dayId: z.string().min(1),
   status: z.enum(["present", "absent", "late", "excused"]),
   date: z.string().date(),
   notes: z.string().max(255).optional().default("")
@@ -24,7 +26,7 @@ attendanceRoutes.get(
     const instructorFilter = req.user?.role === "instructor" ? "AND instructors.user_id = :userId" : "";
     const data = await rows(
       `SELECT attendance.id, attendance.student_id AS studentId, attendance.class_id AS classId,
-              attendance.status, attendance.date, attendance.notes,
+              attendance.class_day_id AS dayId, attendance.status, attendance.date, attendance.notes,
               users.full_name AS studentName, courses.title AS courseTitle, classes.room
        FROM attendance
        JOIN students ON students.id = attendance.student_id
@@ -46,6 +48,11 @@ attendanceRoutes.post(
   authorize("admin", "instructor"),
   validate(z.object({ body: attendanceBody })),
   asyncHandler(async (req, res) => {
+    const day = await ClassDay.findOne({ _id: req.body.dayId, classId: req.body.classId });
+    if (!day) {
+      throw new HttpError(422, "Attendance must be tied to a valid class day");
+    }
+
     if (req.user!.role === "instructor") {
       const [record] = await rows<{ id: string }>(
         `SELECT classes.id
@@ -66,13 +73,14 @@ attendanceRoutes.post(
 
     const id = uuid();
     await execute(
-      `INSERT INTO attendance (id, student_id, class_id, status, date, notes)
-       VALUES (:id, :studentId, :classId, :status, :date, :notes)
+      `INSERT INTO attendance (id, student_id, class_id, class_day_id, status, date, notes)
+       VALUES (:id, :studentId, :classId, :dayId, :status, :date, :notes)
        ON DUPLICATE KEY UPDATE status = VALUES(status), notes = VALUES(notes)`,
       {
         id,
         studentId: req.body.studentId,
         classId: req.body.classId,
+        dayId: req.body.dayId,
         status: req.body.status,
         date: req.body.date,
         notes: req.body.notes

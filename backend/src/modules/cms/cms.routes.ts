@@ -84,7 +84,7 @@ cmsRoutes.get(
 
 cmsRoutes.post(
   "/lessons",
-  authorize("admin", "instructor"),
+  authorize("admin"),
   validate(lessonSchema),
   asyncHandler(async (req, res) => {
     await assertCourseWritable(req.user!, req.body.courseId);
@@ -95,7 +95,7 @@ cmsRoutes.post(
 
 cmsRoutes.put(
   "/lessons/:id",
-  authorize("admin", "instructor"),
+  authorize("admin"),
   validate(z.object({ params: z.object({ id: z.string() }), body: lessonSchema.shape.body.partial() })),
   asyncHandler(async (req, res) => {
     const existing = await Lesson.findById(req.params.id);

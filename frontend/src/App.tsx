@@ -4,6 +4,7 @@ import { ProtectedRoute, RoleRoute } from "./features/auth/ProtectedRoute";
 import { AssignmentsPage } from "./pages/AssignmentsPage";
 import { AttendancePage } from "./pages/AttendancePage";
 import { CmsPage } from "./pages/CmsPage";
+import { ClassStudioPage } from "./pages/ClassStudioPage";
 import { ContentPage } from "./pages/ContentPage";
 import { CoursesPage } from "./pages/CoursesPage";
 import { HomePage } from "./pages/HomePage";
@@ -38,6 +39,14 @@ export default function App() {
             }
           />
           <Route path="courses" element={<CoursesPage />} />
+          <Route
+            path="class-studio"
+            element={
+              <RoleRoute roles={["admin", "instructor"]}>
+                <ClassStudioPage />
+              </RoleRoute>
+            }
+          />
           <Route path="assignments" element={<AssignmentsPage />} />
           <Route
             path="attendance"
@@ -58,7 +67,7 @@ export default function App() {
           <Route
             path="cms"
             element={
-              <RoleRoute roles={["admin", "instructor"]}>
+              <RoleRoute roles={["admin"]}>
                 <CmsPage />
               </RoleRoute>
             }

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { v4 as uuid } from "uuid";
+import { ClassDay } from "../../database/mongo.models.js";
 import { Notification } from "../../database/mongo.models.js";
 import { execute, rows } from "../../database/mysql.js";
 import { authorize } from "../../middleware/authorize.middleware.js";
@@ -15,7 +16,9 @@ import { idParamsSchema } from "../../utils/schemas.js";
 export const assignmentRoutes = Router();
 
 const assignmentBody = z.object({
-  courseId: z.string().uuid(),
+  courseId: z.string().uuid().optional(),
+  classId: z.string().uuid().optional(),
+  dayId: z.string().optional(),
   title: z.string().min(2).max(180),
   description: z.string().max(5000).optional().default(""),
   dueDate: z.string().datetime(),
@@ -44,6 +47,29 @@ async function assertCourseWritable(user: Express.UserClaims, courseId: string) 
   }
 }
 
+async function assertClassWritable(user: Express.UserClaims, classId: string) {
+  const [classRecord] = await rows<{ id: string; courseId: string; instructorUserId: string }>(
+    `SELECT classes.id, classes.course_id AS courseId, instructors.user_id AS instructorUserId
+     FROM classes
+     JOIN courses ON courses.id = classes.course_id
+     JOIN instructors ON instructors.id = courses.instructor_id
+     WHERE classes.id = :classId`,
+    { classId }
+  );
+
+  if (!classRecord) throw new HttpError(404, "Class not found");
+  if (user.role !== "admin" && classRecord.instructorUserId !== user.id) {
+    throw new HttpError(403, "You can only manage assignments inside classes assigned to you");
+  }
+
+  return classRecord;
+}
+
+async function assertDayBelongsToClass(dayId: string, classId: string) {
+  const day = await ClassDay.findOne({ _id: dayId, classId });
+  if (!day) throw new HttpError(422, "Selected day does not belong to this class");
+}
+
 async function assertAssignmentWritable(user: Express.UserClaims, assignmentId: string) {
   if (user.role === "admin") return;
 
@@ -67,7 +93,9 @@ async function assertStudentCanSubmit(studentId: string, assignmentId: string) {
      FROM assignments
      JOIN classes ON classes.course_id = assignments.course_id
      JOIN enrollments ON enrollments.class_id = classes.id
-     WHERE assignments.id = :assignmentId AND enrollments.student_id = :studentId`,
+     WHERE assignments.id = :assignmentId
+       AND enrollments.student_id = :studentId
+       AND (assignments.class_id IS NULL OR assignments.class_id = enrollments.class_id)`,
     { assignmentId, studentId }
   );
 
@@ -87,17 +115,21 @@ assignmentRoutes.get(
              SELECT 1 FROM enrollments
              JOIN classes ON classes.id = enrollments.class_id
              JOIN students ON students.id = enrollments.student_id
-             WHERE classes.course_id = assignments.course_id AND students.user_id = :userId
+             WHERE classes.course_id = assignments.course_id
+               AND students.user_id = :userId
+               AND (assignments.class_id IS NULL OR assignments.class_id = classes.id)
            )`
         : "";
     const instructorFilter = req.user?.role === "instructor" ? "AND instructors.user_id = :userId" : "";
 
     const data = await rows(
-      `SELECT assignments.id, assignments.course_id AS courseId, assignments.title, assignments.description,
+      `SELECT assignments.id, assignments.course_id AS courseId, assignments.class_id AS classId,
+              assignments.class_day_id AS dayId, assignments.title, assignments.description,
               assignments.due_date AS dueDate, assignments.points, courses.title AS courseTitle,
-              users.full_name AS instructorName
+              classes.room AS classRoom, users.full_name AS instructorName
        FROM assignments
        JOIN courses ON courses.id = assignments.course_id
+       LEFT JOIN classes ON classes.id = assignments.class_id
        JOIN instructors ON instructors.id = courses.instructor_id
        JOIN users ON users.id = instructors.user_id
        WHERE (assignments.title LIKE :search OR courses.title LIKE :search)
@@ -126,14 +158,29 @@ assignmentRoutes.post(
   authorize("admin", "instructor"),
   validate(z.object({ body: assignmentBody })),
   asyncHandler(async (req, res) => {
-    await assertCourseWritable(req.user!, req.body.courseId);
+    if (req.user!.role === "instructor" && (!req.body.classId || !req.body.dayId)) {
+      throw new HttpError(422, "Instructors must create assignments inside an assigned class day");
+    }
+
+    let courseId = req.body.courseId;
+    if (req.body.classId) {
+      const classRecord = await assertClassWritable(req.user!, req.body.classId);
+      courseId = classRecord.courseId;
+      if (req.body.dayId) await assertDayBelongsToClass(req.body.dayId, req.body.classId);
+    }
+
+    if (!courseId) throw new HttpError(422, "courseId is required unless classId is provided");
+    if (!req.body.classId) await assertCourseWritable(req.user!, courseId);
+
     const id = uuid();
     await execute(
-      `INSERT INTO assignments (id, course_id, title, description, due_date, points)
-       VALUES (:id, :courseId, :title, :description, :dueDate, :points)`,
+      `INSERT INTO assignments (id, course_id, class_id, class_day_id, title, description, due_date, points)
+       VALUES (:id, :courseId, :classId, :dayId, :title, :description, :dueDate, :points)`,
       {
         id,
-        courseId: req.body.courseId,
+        courseId,
+        classId: req.body.classId ?? null,
+        dayId: req.body.dayId ?? null,
         title: req.body.title,
         description: req.body.description,
         dueDate: req.body.dueDate.replace("T", " ").replace("Z", ""),
@@ -163,9 +210,16 @@ assignmentRoutes.put(
     if (req.body.courseId) {
       await assertCourseWritable(req.user!, req.body.courseId);
     }
+    if (req.body.classId) {
+      const classRecord = await assertClassWritable(req.user!, req.body.classId);
+      req.body.courseId = classRecord.courseId;
+      if (req.body.dayId) await assertDayBelongsToClass(req.body.dayId, req.body.classId);
+    }
     await execute(
       `UPDATE assignments
        SET course_id = COALESCE(:courseId, course_id),
+           class_id = COALESCE(:classId, class_id),
+           class_day_id = COALESCE(:dayId, class_day_id),
            title = COALESCE(:title, title),
            description = COALESCE(:description, description),
            due_date = COALESCE(:dueDate, due_date),
@@ -173,7 +227,9 @@ assignmentRoutes.put(
        WHERE id = :id`,
       {
         id: req.params.id,
-        courseId: req.body.courseId,
+        courseId: req.body.courseId ?? null,
+        classId: req.body.classId ?? null,
+        dayId: req.body.dayId ?? null,
         title: req.body.title,
         description: req.body.description,
         dueDate: req.body.dueDate ? req.body.dueDate.replace("T", " ").replace("Z", "") : null,
@@ -204,11 +260,13 @@ assignmentRoutes.get(
       `SELECT submissions.id, submissions.assignment_id AS assignmentId, submissions.student_id AS studentId,
               submissions.file_url AS fileUrl, submissions.notes, submissions.grade, submissions.feedback,
               submissions.submitted_at AS submittedAt, submissions.graded_at AS gradedAt,
-              assignments.title AS assignmentTitle, users.full_name AS studentName, courses.title AS courseTitle
+              assignments.title AS assignmentTitle, assignments.class_day_id AS dayId,
+              users.full_name AS studentName, courses.title AS courseTitle, classes.room AS classRoom
        FROM submissions
        JOIN assignments ON assignments.id = submissions.assignment_id
        JOIN courses ON courses.id = assignments.course_id
        JOIN instructors ON instructors.id = courses.instructor_id
+       LEFT JOIN classes ON classes.id = assignments.class_id
        JOIN students ON students.id = submissions.student_id
        JOIN users ON users.id = students.user_id
        WHERE 1 = 1

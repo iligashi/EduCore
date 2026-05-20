@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { v4 as uuid } from "uuid";
 import { connectMongo, disconnectMongo } from "./mongo.js";
-import { ActivityLog, Announcement, CmsContent, Lesson, Notification, QuizQuestion } from "./mongo.models.js";
+import { ActivityLog, Announcement, ClassBackup, ClassDay, CmsContent, Lesson, Notification, QuizQuestion } from "./mongo.models.js";
 import { execute, pool } from "./mysql.js";
 
 const password = "Password123!";
@@ -128,6 +128,8 @@ async function seedMongo() {
   const courseId = "66666666-6666-4666-8666-666666666666";
   await Promise.all([
     Lesson.deleteMany({ courseId }),
+    ClassDay.deleteMany({ classId: "77777777-7777-4777-8777-777777777777" }),
+    ClassBackup.deleteMany({ classId: "77777777-7777-4777-8777-777777777777" }),
     Announcement.deleteMany({ courseId }),
     Notification.deleteMany({ title: /EduCore/i }),
     ActivityLog.deleteMany({ action: "seed" }),
@@ -153,6 +155,20 @@ async function seedMongo() {
     type: "single",
     options: ["MySQL", "MongoDB", "Redis"],
     correctAnswers: ["MongoDB"]
+  });
+
+  await ClassDay.create({
+    classId: "77777777-7777-4777-8777-777777777777",
+    courseId,
+    dayNumber: 1,
+    title: "Platform Architecture",
+    content: "Day 1 covers the EduCore architecture, user roles, and how LMS content connects to DMS operations.",
+    blocks: [
+      { type: "heading", text: "Day 1" },
+      { type: "paragraph", text: "Review the React frontend, Express API, MySQL records, and MongoDB content collections." }
+    ],
+    assets: [],
+    published: true
   });
 
   await Announcement.create({

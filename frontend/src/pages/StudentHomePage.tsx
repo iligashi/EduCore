@@ -5,18 +5,17 @@ import { Button } from "../components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { SectionHeader } from "../components/ui/SectionHeader";
 import { api } from "../services/api";
-import type { ApiList, Course } from "../types";
-
-interface Lesson {
-  _id: string;
-  title: string;
-  content: string;
-  courseId: string;
-}
+import type { ApiList, ClassDay, ClassRecord, Course } from "../types";
 
 export function StudentHomePage() {
   const { data: courses } = useQuery({ queryKey: ["courses"], queryFn: () => api.get<ApiList<Course>>("/courses") });
-  const { data: lessons } = useQuery({ queryKey: ["lessons"], queryFn: () => api.get<{ data: Lesson[] }>("/cms/lessons") });
+  const { data: classes } = useQuery({ queryKey: ["classes"], queryFn: () => api.get<{ data: ClassRecord[] }>("/courses/classes/all") });
+  const firstClassId = classes?.data?.[0]?.id ?? "";
+  const { data: days } = useQuery({
+    queryKey: ["class-days", firstClassId],
+    queryFn: () => api.get<{ data: ClassDay[] }>(`/courses/classes/${firstClassId}/days`),
+    enabled: Boolean(firstClassId)
+  });
 
   return (
     <>
@@ -54,13 +53,13 @@ export function StudentHomePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {(lessons?.data ?? []).slice(0, 6).map((lesson) => (
-                <div key={lesson._id} className="rounded-md bg-muted p-4">
+              {(days?.data ?? []).slice(0, 6).map((day) => (
+                <div key={day._id} className="rounded-md bg-muted p-4">
                   <div className="flex items-center gap-2">
                     <FileText size={17} className="text-primary" />
-                    <p className="font-medium">{lesson.title}</p>
+                    <p className="font-medium">Day {day.dayNumber}: {day.title}</p>
                   </div>
-                  <p className="mt-2 text-sm text-slate-600">{lesson.content}</p>
+                  <p className="mt-2 text-sm text-slate-600">{day.content}</p>
                 </div>
               ))}
             </div>

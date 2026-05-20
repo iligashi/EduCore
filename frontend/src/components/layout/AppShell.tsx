@@ -1,6 +1,7 @@
 import {
   Bell,
   BookOpen,
+  CalendarDays,
   ClipboardCheck,
   FileBarChart,
   Gauge,
@@ -25,10 +26,11 @@ const navItems = [
   { to: "/instructors", label: "Instructors", icon: GraduationCap, roles: ["admin"] },
   { to: "/courses", label: "Courses", icon: BookOpen, roles: ["admin", "instructor", "student"] },
   { to: "/content", label: "Content", icon: BookOpen, roles: ["student"] },
+  { to: "/class-studio", label: "Class Studio", icon: CalendarDays, roles: ["admin", "instructor"] },
   { to: "/assignments", label: "Assignments", icon: ClipboardCheck, roles: ["admin", "instructor", "student"] },
   { to: "/attendance", label: "Attendance", icon: Gauge, roles: ["admin", "instructor"] },
   { to: "/reports", label: "Reports", icon: FileBarChart, roles: ["admin"] },
-  { to: "/cms", label: "CMS", icon: Megaphone, roles: ["admin", "instructor"] },
+  { to: "/cms", label: "CMS", icon: Megaphone, roles: ["admin"] },
   { to: "/notifications", label: "Notifications", icon: Bell, roles: ["admin", "instructor", "student"] },
   { to: "/search", label: "Search", icon: Search, roles: ["admin", "instructor"] }
 ] satisfies { to: string; label: string; icon: LucideIcon; roles: Role[] }[];
@@ -85,7 +87,7 @@ export function AppShell() {
             <NavLink to="/notifications" className="rounded-md p-2 text-slate-500 hover:bg-muted hover:text-slate-900" title="Notifications">
               <Bell size={19} />
             </NavLink>
-            {user?.role !== "student" ? (
+            {user?.role === "admin" ? (
               <NavLink to="/cms" className="rounded-md p-2 text-slate-500 hover:bg-muted hover:text-slate-900" title="CMS">
                 <Megaphone size={19} />
               </NavLink>

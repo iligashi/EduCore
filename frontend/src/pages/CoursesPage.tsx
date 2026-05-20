@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import { CalendarPlus, Plus } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Badge } from "../components/ui/Badge";
@@ -11,7 +11,7 @@ import { SectionHeader } from "../components/ui/SectionHeader";
 import { Table, Td, Th } from "../components/ui/Table";
 import { useAuth } from "../features/auth/AuthProvider";
 import { api } from "../services/api";
-import type { ApiList, Course, Instructor } from "../types";
+import type { ApiList, ClassRecord, Course, Instructor } from "../types";
 
 const schema = z.object({
   title: z.string().min(2),
@@ -23,6 +23,16 @@ const schema = z.object({
 
 type CourseInput = z.infer<typeof schema>;
 
+const classSchema = z.object({
+  courseId: z.string().uuid(),
+  room: z.string().min(1),
+  scheduleText: z.string().min(1),
+  startsAt: z.string().optional(),
+  endsAt: z.string().optional()
+});
+
+type ClassInput = z.infer<typeof classSchema>;
+
 export function CoursesPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -30,7 +40,11 @@ export function CoursesPage() {
     resolver: zodResolver(schema),
     defaultValues: { level: "General", status: "draft" }
   });
+  const classForm = useForm<ClassInput>({
+    resolver: zodResolver(classSchema)
+  });
   const { data } = useQuery({ queryKey: ["courses"], queryFn: () => api.get<ApiList<Course>>("/courses") });
+  const { data: classes } = useQuery({ queryKey: ["classes"], queryFn: () => api.get<{ data: ClassRecord[] }>("/courses/classes/all") });
   const { data: instructors } = useQuery({
     queryKey: ["instructors"],
     queryFn: () => api.get<ApiList<Instructor>>("/instructors"),
@@ -43,22 +57,35 @@ export function CoursesPage() {
       queryClient.invalidateQueries({ queryKey: ["courses"] });
     }
   });
+  const createClassMutation = useMutation({
+    mutationFn: (input: ClassInput) =>
+      api.post(`/courses/${input.courseId}/classes`, {
+        room: input.room,
+        schedule: { note: input.scheduleText },
+        startsAt: input.startsAt ? new Date(input.startsAt).toISOString() : undefined,
+        endsAt: input.endsAt ? new Date(input.endsAt).toISOString() : undefined
+      }),
+    onSuccess: () => {
+      classForm.reset();
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+    }
+  });
 
   return (
     <>
       <SectionHeader title="Courses" description="Course catalog, instructors, publishing state, and class planning." />
       <div className="grid gap-6 xl:grid-cols-[380px_1fr]">
-        {user?.role !== "student" ? (
-          <Card>
-            <CardHeader>
-              <CardTitle>Create Course</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-3" onSubmit={form.handleSubmit((values) => createMutation.mutate(values))}>
-                <Input placeholder="Course title" {...form.register("title")} />
-                <Textarea placeholder="Description" {...form.register("description")} />
-                <Input placeholder="Level" {...form.register("level")} />
-                {user?.role === "admin" ? (
+        {user?.role === "admin" ? (
+          <div className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create Course</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-3" onSubmit={form.handleSubmit((values) => createMutation.mutate(values))}>
+                  <Input placeholder="Course title" {...form.register("title")} />
+                  <Textarea placeholder="Description" {...form.register("description")} />
+                  <Input placeholder="Level" {...form.register("level")} />
                   <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...form.register("instructorId")}>
                     <option value="">Select instructor</option>
                     {(instructors?.data ?? []).map((instructor) => (
@@ -67,21 +94,47 @@ export function CoursesPage() {
                       </option>
                     ))}
                   </select>
-                ) : null}
-                <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...form.register("status")}>
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                  <option value="archived">Archived</option>
-                </select>
-                <Button className="w-full" disabled={createMutation.isPending}>
-                  <Plus size={16} />
-                  Save course
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+                  <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...form.register("status")}>
+                    <option value="draft">Draft</option>
+                    <option value="published">Published</option>
+                    <option value="archived">Archived</option>
+                  </select>
+                  <Button className="w-full" disabled={createMutation.isPending}>
+                    <Plus size={16} />
+                    Save course
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Create Assigned Class</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-3" onSubmit={classForm.handleSubmit((values) => createClassMutation.mutate(values))}>
+                  <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...classForm.register("courseId")}>
+                    <option value="">Select course</option>
+                    {(data?.data ?? []).map((course) => (
+                      <option key={course.id} value={course.id}>
+                        {course.title} / {course.instructorName}
+                      </option>
+                    ))}
+                  </select>
+                  <Input placeholder="Room" {...classForm.register("room")} />
+                  <Input placeholder="Schedule note" {...classForm.register("scheduleText")} />
+                  <Input type="datetime-local" {...classForm.register("startsAt")} />
+                  <Input type="datetime-local" {...classForm.register("endsAt")} />
+                  <Button className="w-full" disabled={createClassMutation.isPending}>
+                    <CalendarPlus size={16} />
+                    Assign class
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </div>
         ) : null}
-        <Card className={user?.role !== "student" ? "" : "xl:col-span-2"}>
+        <div className={user?.role === "admin" ? "space-y-6" : "space-y-6 xl:col-span-2"}>
+        <Card>
           <CardHeader>
             <CardTitle>Course Catalog</CardTitle>
           </CardHeader>
@@ -115,8 +168,33 @@ export function CoursesPage() {
             </Table>
           </CardContent>
         </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Classes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <thead>
+                <tr>
+                  <Th>Class</Th>
+                  <Th>Room</Th>
+                  <Th>Schedule</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {(classes?.data ?? []).map((item) => (
+                  <tr key={item.id}>
+                    <Td>{item.courseTitle}</Td>
+                    <Td>{item.room}</Td>
+                    <Td>{typeof item.schedule === "string" ? item.schedule : JSON.stringify(item.schedule)}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          </CardContent>
+        </Card>
+        </div>
       </div>
     </>
   );
 }
-

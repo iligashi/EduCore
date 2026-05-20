@@ -11,17 +11,12 @@ import { SectionHeader } from "../components/ui/SectionHeader";
 import { Table, Td, Th } from "../components/ui/Table";
 import { useAuth } from "../features/auth/AuthProvider";
 import { api } from "../services/api";
-import type { ApiList, AttendanceRecord, Student } from "../types";
-
-interface ClassRecord {
-  id: string;
-  courseTitle: string;
-  room: string;
-}
+import type { ApiList, AttendanceRecord, ClassDay, ClassRecord, Student } from "../types";
 
 const schema = z.object({
   studentId: z.string().uuid(),
   classId: z.string().uuid(),
+  dayId: z.string().min(1),
   status: z.enum(["present", "absent", "late", "excused"]),
   date: z.string().min(1),
   notes: z.string().optional()
@@ -34,6 +29,7 @@ export function AttendancePage() {
     resolver: zodResolver(schema),
     defaultValues: { status: "present", date: new Date().toISOString().slice(0, 10) }
   });
+  const selectedClassId = form.watch("classId");
   const { data: attendance } = useQuery({
     queryKey: ["attendance"],
     queryFn: () => api.get<{ data: AttendanceRecord[] }>("/attendance")
@@ -47,6 +43,11 @@ export function AttendancePage() {
     queryKey: ["classes"],
     queryFn: () => api.get<{ data: ClassRecord[] }>("/courses/classes/all"),
     enabled: user?.role !== "student"
+  });
+  const { data: days } = useQuery({
+    queryKey: ["class-days", selectedClassId],
+    queryFn: () => api.get<{ data: ClassDay[] }>(`/courses/classes/${selectedClassId}/days`),
+    enabled: Boolean(selectedClassId) && user?.role !== "student"
   });
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof schema>) => api.post("/attendance", values),
@@ -82,6 +83,14 @@ export function AttendancePage() {
                     </option>
                   ))}
                 </select>
+                <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...form.register("dayId")}>
+                  <option value="">Select course day</option>
+                  {(days?.data ?? []).map((day) => (
+                    <option key={day._id} value={day._id}>
+                      Day {day.dayNumber}: {day.title}
+                    </option>
+                  ))}
+                </select>
                 <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...form.register("status")}>
                   <option value="present">Present</option>
                   <option value="absent">Absent</option>
@@ -109,6 +118,7 @@ export function AttendancePage() {
                   <Th>Student</Th>
                   <Th>Course</Th>
                   <Th>Status</Th>
+                  <Th>Day</Th>
                   <Th>Date</Th>
                   <Th>Notes</Th>
                 </tr>
@@ -121,6 +131,7 @@ export function AttendancePage() {
                     <Td>
                       <Badge tone={record.status === "present" ? "success" : record.status === "absent" ? "danger" : "warning"}>{record.status}</Badge>
                     </Td>
+                    <Td>{record.dayId ?? ""}</Td>
                     <Td>{record.date}</Td>
                     <Td>{record.notes}</Td>
                   </tr>
@@ -133,4 +144,3 @@ export function AttendancePage() {
     </>
   );
 }
-

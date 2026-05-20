@@ -71,11 +71,13 @@ CREATE TABLE IF NOT EXISTS attendance (
   id CHAR(36) PRIMARY KEY,
   student_id CHAR(36) NOT NULL,
   class_id CHAR(36) NOT NULL,
+  class_day_id VARCHAR(40) NULL,
   status ENUM('present', 'absent', 'late', 'excused') NOT NULL,
   date DATE NOT NULL,
   notes VARCHAR(255) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_attendance_student_class_date (student_id, class_id, date),
+  UNIQUE KEY uq_attendance_student_class_day (student_id, class_id, class_day_id),
   CONSTRAINT fk_attendance_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
   CONSTRAINT fk_attendance_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE
 );
@@ -83,13 +85,16 @@ CREATE TABLE IF NOT EXISTS attendance (
 CREATE TABLE IF NOT EXISTS assignments (
   id CHAR(36) PRIMARY KEY,
   course_id CHAR(36) NOT NULL,
+  class_id CHAR(36) NULL,
+  class_day_id VARCHAR(40) NULL,
   title VARCHAR(180) NOT NULL,
   description TEXT,
   due_date DATETIME NOT NULL,
   points INT NOT NULL DEFAULT 100,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  CONSTRAINT fk_assignments_course FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE
+  CONSTRAINT fk_assignments_course FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+  CONSTRAINT fk_assignments_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS submissions (
@@ -121,5 +126,5 @@ CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_courses_instructor ON courses(instructor_id);
 CREATE INDEX idx_attendance_date ON attendance(date);
 CREATE INDEX idx_assignments_due_date ON assignments(due_date);
+CREATE INDEX idx_assignments_class_day ON assignments(class_id, class_day_id);
 CREATE INDEX idx_submissions_grade ON submissions(grade);
-

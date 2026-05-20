@@ -48,10 +48,35 @@ export interface Course {
   status: string;
 }
 
+export interface ClassRecord {
+  id: string;
+  courseId: string;
+  courseTitle: string;
+  room: string;
+  schedule: Record<string, unknown> | string;
+  startsAt?: string;
+  endsAt?: string;
+}
+
+export interface ClassDay {
+  _id: string;
+  classId: string;
+  courseId: string;
+  dayNumber: number;
+  title: string;
+  content: string;
+  blocks: { type: string; text?: string; url?: string }[];
+  assets: string[];
+  published: boolean;
+}
+
 export interface Assignment {
   id: string;
   courseId: string;
+  classId?: string | null;
+  dayId?: string | null;
   courseTitle?: string;
+  classRoom?: string;
   title: string;
   description: string;
   dueDate: string;
@@ -60,6 +85,7 @@ export interface Assignment {
 
 export interface AttendanceRecord {
   id: string;
+  dayId?: string;
   studentName: string;
   courseTitle: string;
   status: "present" | "absent" | "late" | "excused";
@@ -75,4 +101,3 @@ export interface NotificationItem {
   readAt?: string | null;
   createdAt: string;
 }
-
