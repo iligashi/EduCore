@@ -1,10 +1,11 @@
 import { Router } from "express";
 import { z } from "zod";
 import { v4 as uuid } from "uuid";
-import { ClassDay } from "../../database/mongo.models.js";
+import { ClassDay, Notification } from "../../database/mongo.models.js";
 import { authorize } from "../../middleware/authorize.middleware.js";
 import { validate } from "../../middleware/validate.middleware.js";
 import { execute, rows } from "../../database/mysql.js";
+import { getIo } from "../../realtime/socket.js";
 import { asyncHandler } from "../../utils/async-handler.js";
 import { HttpError } from "../../utils/http-error.js";
 
@@ -23,6 +24,18 @@ const attendanceUpdateBody = z.object({
   status: z.enum(["present", "absent", "late", "excused"]),
   notes: z.string().max(255).optional().default("")
 });
+
+interface AttendanceSessionRow {
+  classId: string;
+  dayId: string;
+  date: string;
+  startedAt: string;
+  totalMarked: number;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+}
 
 async function assertClassDayExists(classId: string, dayId: string) {
   const day = await ClassDay.findOne({ _id: dayId, classId });
@@ -82,6 +95,130 @@ async function assertAttendanceWindow(req: Express.Request, input: { id?: string
   }
 }
 
+async function maybeNotifyThreeAbsences(studentId: string, classId: string) {
+  const latest = await rows<{ id: string; status: string }>(
+    `SELECT id, status
+     FROM attendance
+     WHERE student_id = :studentId AND class_id = :classId
+     ORDER BY date DESC, created_at DESC
+     LIMIT 3`,
+    { studentId, classId }
+  );
+
+  if (latest.length < 3 || latest.some((record) => record.status !== "absent")) return;
+
+  const [student] = await rows<{ userId: string; courseTitle: string }>(
+    `SELECT students.user_id AS userId, courses.title AS courseTitle
+     FROM students
+     JOIN classes ON classes.id = :classId
+     JOIN courses ON courses.id = classes.course_id
+     WHERE students.id = :studentId`,
+    { studentId, classId }
+  );
+  if (!student) return;
+
+  const streakKey = latest.map((record) => record.id).join(":");
+  const existing = await Notification.findOne({
+    userId: student.userId,
+    type: "attendance-warning",
+    "metadata.classId": classId,
+    "metadata.streakKey": streakKey
+  });
+  if (existing) return;
+
+  const notification = await Notification.create({
+    userId: student.userId,
+    title: "Attendance warning",
+    message: `You have been missing the last three hours in ${student.courseTitle}.`,
+    type: "attendance-warning",
+    metadata: { classId, streakKey }
+  });
+  getIo()?.to(`user:${student.userId}`).emit("notification:new", notification);
+}
+
+async function getAttendanceHealth(user: Express.UserClaims) {
+  const instructorFilter = user.role === "instructor" ? "AND instructors.user_id = :userId" : "";
+  const classRecords = await rows<{
+    classId: string;
+    courseTitle: string;
+    room: string;
+    instructorName: string;
+    totalStudents: number;
+  }>(
+    `SELECT classes.id AS classId, courses.title AS courseTitle, classes.room,
+            users.full_name AS instructorName,
+            COUNT(DISTINCT enrollments.student_id) AS totalStudents
+     FROM classes
+     JOIN courses ON courses.id = classes.course_id
+     JOIN instructors ON instructors.id = courses.instructor_id
+     JOIN users ON users.id = instructors.user_id
+     LEFT JOIN enrollments ON enrollments.class_id = classes.id AND enrollments.status = 'active'
+     WHERE 1 = 1
+     ${instructorFilter}
+     GROUP BY classes.id, courses.title, classes.room, users.full_name
+     ORDER BY courses.title, classes.room`,
+    { userId: user.id }
+  );
+
+  const sessions = await rows<AttendanceSessionRow>(
+    `SELECT attendance.class_id AS classId, attendance.class_day_id AS dayId, attendance.date,
+            MIN(attendance.created_at) AS startedAt,
+            COUNT(*) AS totalMarked,
+            SUM(CASE WHEN attendance.status = 'present' THEN 1 ELSE 0 END) AS present,
+            SUM(CASE WHEN attendance.status = 'absent' THEN 1 ELSE 0 END) AS absent,
+            SUM(CASE WHEN attendance.status = 'late' THEN 1 ELSE 0 END) AS late,
+            SUM(CASE WHEN attendance.status = 'excused' THEN 1 ELSE 0 END) AS excused
+     FROM attendance
+     JOIN classes ON classes.id = attendance.class_id
+     JOIN courses ON courses.id = classes.course_id
+     JOIN instructors ON instructors.id = courses.instructor_id
+     WHERE 1 = 1
+     ${instructorFilter}
+     GROUP BY attendance.class_id, attendance.class_day_id, attendance.date
+     ORDER BY attendance.date DESC, startedAt DESC`,
+    { userId: user.id }
+  );
+
+  const days = await ClassDay.find({
+    classId: { $in: classRecords.map((item) => item.classId) }
+  })
+    .select("classId dayNumber title")
+    .lean();
+  const dayById = new Map(days.map((day) => [String(day._id), day]));
+  const sessionsByClass = sessions.reduce<Record<string, unknown[]>>((grouped, session) => {
+    const day = dayById.get(String(session.dayId));
+    grouped[session.classId] = [
+      ...(grouped[session.classId] ?? []),
+      {
+        dayId: session.dayId,
+        dayNumber: day?.dayNumber ?? null,
+        dayTitle: day?.title ?? "Unlinked day",
+        date: session.date,
+        startedAt: session.startedAt,
+        totalMarked: Number(session.totalMarked ?? 0),
+        present: Number(session.present ?? 0),
+        absent: Number(session.absent ?? 0),
+        late: Number(session.late ?? 0),
+        excused: Number(session.excused ?? 0)
+      }
+    ];
+    return grouped;
+  }, {});
+
+  return classRecords.map((classRecord) => {
+    const classSessions = sessionsByClass[classRecord.classId] ?? [];
+    const latestSession = classSessions[0] as { startedAt?: string; present?: number } | undefined;
+    return {
+      ...classRecord,
+      totalStudents: Number(classRecord.totalStudents ?? 0),
+      sessions: classSessions,
+      totalSessions: classSessions.length,
+      lastStartedAt: latestSession?.startedAt ?? null,
+      lastPresent: latestSession?.present ?? 0
+    };
+  });
+}
+
 attendanceRoutes.get(
   "/",
   authorize("admin", "instructor"),
@@ -109,9 +246,17 @@ attendanceRoutes.get(
   })
 );
 
+attendanceRoutes.get(
+  "/health",
+  authorize("admin", "instructor"),
+  asyncHandler(async (req, res) => {
+    res.json({ data: await getAttendanceHealth(req.user!) });
+  })
+);
+
 attendanceRoutes.post(
   "/",
-  authorize("admin", "instructor"),
+  authorize("instructor"),
   validate(z.object({ body: attendanceBody })),
   asyncHandler(async (req, res) => {
     await assertClassDayExists(req.body.classId, req.body.dayId);
@@ -133,30 +278,32 @@ attendanceRoutes.post(
         notes: req.body.notes
       }
     );
+    await maybeNotifyThreeAbsences(req.body.studentId, req.body.classId);
     res.status(201).json({ id, ...req.body });
   })
 );
 
 attendanceRoutes.put(
   "/:id",
-  authorize("admin", "instructor"),
+  authorize("instructor"),
   validate(z.object({ params: z.object({ id: z.string().uuid() }), body: attendanceUpdateBody })),
   asyncHandler(async (req, res) => {
     await assertAttendanceWindow(req, { id: String(req.params.id) });
     await execute(
       `UPDATE attendance
        SET status = :status, notes = :notes
-       WHERE id = :id`,
+      WHERE id = :id`,
       { id: req.params.id, status: req.body.status, notes: req.body.notes }
     );
-    const [updated] = await rows("SELECT * FROM attendance WHERE id = :id", { id: req.params.id });
+    const [updated] = await rows<{ student_id: string; class_id: string }>("SELECT * FROM attendance WHERE id = :id", { id: req.params.id });
+    if (updated) await maybeNotifyThreeAbsences(updated.student_id, updated.class_id);
     res.json(updated);
   })
 );
 
 attendanceRoutes.post(
   "/bulk",
-  authorize("admin", "instructor"),
+  authorize("instructor"),
   validate(
     z.object({
       body: z.object({
@@ -175,6 +322,7 @@ attendanceRoutes.post(
   ),
   asyncHandler(async (req, res) => {
     await assertClassDayExists(req.body.classId, req.body.dayId);
+    const notificationChecks = new Set<string>();
     for (const record of req.body.records) {
       await assertInstructorCanManageStudent(req, req.body.classId, record.studentId);
       await assertAttendanceWindow(req, {
@@ -196,6 +344,10 @@ attendanceRoutes.post(
           notes: record.notes
         }
       );
+      notificationChecks.add(record.studentId);
+    }
+    for (const studentId of notificationChecks) {
+      await maybeNotifyThreeAbsences(studentId, req.body.classId);
     }
     res.status(201).json({ saved: req.body.records.length });
   })

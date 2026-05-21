@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, FileText, FileUp, Image, Link, Plus, Save, Star, Trash2, Type } from "lucide-react";
+import { Copy, FileText, FileUp, Image, Link, MessageSquare, Plus, Reply, Save, Send, Star, Trash2, Type } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Badge } from "../components/ui/Badge";
@@ -10,8 +10,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card"
 import { Input, Textarea } from "../components/ui/Input";
 import { SectionHeader } from "../components/ui/SectionHeader";
 import { Table, Td, Th } from "../components/ui/Table";
+import { useAuth } from "../features/auth/AuthProvider";
 import { api } from "../services/api";
-import type { Assignment, ClassDay, ClassRecord } from "../types";
+import type { Assignment, ClassComment, ClassDay, ClassRecord } from "../types";
 
 interface Submission {
   id: string;
@@ -42,8 +43,29 @@ function classLabel(item: ClassRecord) {
   return `${item.courseTitle} / ${item.room}`;
 }
 
+function formatBlock(block: { type: string; text?: string; url?: string }) {
+  if (block.type === "link" && block.url) {
+    return (
+      <a className="text-primary" href={block.url} target="_blank" rel="noreferrer">
+        {block.text ?? block.url}
+      </a>
+    );
+  }
+
+  if ((block.type === "image" || block.type === "file") && block.url) {
+    return (
+      <a className="text-primary" href={block.url} target="_blank" rel="noreferrer">
+        {block.url.split("/").pop()}
+      </a>
+    );
+  }
+
+  return block.text ?? block.url ?? "";
+}
+
 export function ClassStudioPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [selectedClassId, setSelectedClassId] = useState("");
   const [selectedDayId, setSelectedDayId] = useState("");
   const [assetFile, setAssetFile] = useState<File | null>(null);
@@ -52,6 +74,8 @@ export function ClassStudioPage() {
   const [blocks, setBlocks] = useState<{ type: string; text?: string; url?: string }[]>([]);
   const [blockType, setBlockType] = useState("paragraph");
   const [blockText, setBlockText] = useState("");
+  const [commentText, setCommentText] = useState("");
+  const [replyTextByComment, setReplyTextByComment] = useState<Record<string, string>>({});
 
   const dayForm = useForm<z.infer<typeof daySchema>>({
     resolver: zodResolver(daySchema),
@@ -75,6 +99,16 @@ export function ClassStudioPage() {
     [classes?.data, selectedClassId]
   );
 
+  function selectClass(classId: string) {
+    setSelectedClassId(classId);
+    setSelectedDayId("");
+    setCommentText("");
+    setReplyTextByComment({});
+    dayForm.reset({ published: false, content: "" });
+    setAssetUrls([]);
+    setBlocks([]);
+  }
+
   const { data: days } = useQuery({
     queryKey: ["class-days", selectedClassId],
     queryFn: () => api.get<{ data: ClassDay[] }>(`/courses/classes/${selectedClassId}/days`),
@@ -83,6 +117,12 @@ export function ClassStudioPage() {
 
   const selectedDay = useMemo(() => (days?.data ?? []).find((day) => day._id === selectedDayId), [days?.data, selectedDayId]);
 
+  const { data: comments } = useQuery({
+    queryKey: ["class-comments", selectedClassId],
+    queryFn: () => api.get<{ data: ClassComment[] }>(`/courses/classes/${selectedClassId}/comments`),
+    enabled: Boolean(selectedClassId)
+  });
+
   const { data: assignments } = useQuery({
     queryKey: ["assignments"],
     queryFn: () => api.get<{ data: Assignment[] }>("/assignments")
@@ -90,7 +130,8 @@ export function ClassStudioPage() {
 
   const { data: submissions } = useQuery({
     queryKey: ["submissions"],
-    queryFn: () => api.get<{ data: Submission[] }>("/assignments/submissions")
+    queryFn: () => api.get<{ data: Submission[] }>("/assignments/submissions"),
+    enabled: user?.role === "instructor"
   });
 
   useEffect(() => {
@@ -104,6 +145,11 @@ export function ClassStudioPage() {
     setAssetUrls(selectedDay.assets ?? []);
     setBlocks(selectedDay.blocks ?? []);
   }, [dayForm, selectedDay]);
+
+  useEffect(() => {
+    if (!selectedClassId || selectedDayId || !days?.data.length) return;
+    setSelectedDayId(days.data[0]._id);
+  }, [days?.data, selectedClassId, selectedDayId]);
 
   const saveDay = useMutation({
     mutationFn: async (values: z.infer<typeof daySchema>) => {
@@ -173,8 +219,30 @@ export function ClassStudioPage() {
     }
   });
 
+  const createComment = useMutation({
+    mutationFn: ({ message, parentId }: { message: string; parentId?: string }) =>
+      api.post<ClassComment>(`/courses/classes/${selectedClassId}/comments`, {
+        message,
+        parentId
+      }),
+    onSuccess: (_comment, variables) => {
+      if (variables.parentId) {
+        setReplyTextByComment((current) => ({ ...current, [variables.parentId!]: "" }));
+      } else {
+        setCommentText("");
+      }
+      queryClient.invalidateQueries({ queryKey: ["class-comments", selectedClassId] });
+    }
+  });
+
   const dayAssignments = (assignments?.data ?? []).filter((assignment) => assignment.dayId === selectedDayId);
   const daySubmissions = (submissions?.data ?? []).filter((submission) => !selectedDayId || submission.dayId === selectedDayId);
+  const topLevelComments = (comments?.data ?? []).filter((comment) => !comment.parentId);
+  const repliesByComment = (comments?.data ?? []).reduce<Record<string, ClassComment[]>>((grouped, comment) => {
+    if (!comment.parentId) return grouped;
+    grouped[comment.parentId] = [...(grouped[comment.parentId] ?? []), comment];
+    return grouped;
+  }, {});
 
   return (
     <>
@@ -183,31 +251,28 @@ export function ClassStudioPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Assigned Class</CardTitle>
+              <CardTitle>{user?.role === "admin" ? "Classes" : "Assigned Classes"}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <select
-                className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm"
-                value={selectedClassId}
-                onChange={(event) => {
-                  setSelectedClassId(event.target.value);
-                  setSelectedDayId("");
-                  dayForm.reset({ published: false, content: "" });
-                  setAssetUrls([]);
-                  setBlocks([]);
-                }}
-              >
-                <option value="">Select class</option>
+              <div className="max-h-80 space-y-2 overflow-y-auto pr-1">
                 {(classes?.data ?? []).map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {classLabel(item)}
-                  </option>
+                  <button
+                    key={item.id}
+                    type="button"
+                    className={`w-full rounded-md border px-3 py-2 text-left text-sm ${selectedClassId === item.id ? "border-primary bg-teal-50" : "border-border bg-white hover:bg-muted"}`}
+                    onClick={() => selectClass(item.id)}
+                  >
+                    <span className="block font-medium">{classLabel(item)}</span>
+                    <span className="mt-1 block text-xs text-slate-500">{item.instructorName ?? "No instructor"}</span>
+                  </button>
                 ))}
-              </select>
+                {(classes?.data ?? []).length === 0 ? <p className="text-sm text-slate-500">No classes available.</p> : null}
+              </div>
               {selectedClass ? (
                 <div className="rounded-md bg-muted p-3 text-sm text-slate-600">
                   <p className="font-medium text-slate-900">{selectedClass.courseTitle}</p>
                   <p>Room: {selectedClass.room}</p>
+                  {selectedClass.instructorName ? <p>Instructor: {selectedClass.instructorName}</p> : null}
                 </div>
               ) : null}
             </CardContent>
@@ -270,6 +335,131 @@ export function ClassStudioPage() {
           </Card>
         </div>
         <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Class Content</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {selectedClass ? (
+                <>
+                  <div className="rounded-md bg-muted p-3 text-sm">
+                    <p className="font-medium">{classLabel(selectedClass)}</p>
+                    {selectedClass.instructorName ? <p className="mt-1 text-slate-500">{selectedClass.instructorName}</p> : null}
+                  </div>
+                  {selectedDay ? (
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge tone={selectedDay.published ? "success" : "warning"}>{selectedDay.published ? "Published" : "Draft"}</Badge>
+                        <span className="text-sm font-medium">Day {selectedDay.dayNumber}: {selectedDay.title}</span>
+                      </div>
+                      {selectedDay.content ? <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{selectedDay.content}</p> : null}
+                      {(selectedDay.blocks ?? []).length ? (
+                        <div className="space-y-2">
+                          {selectedDay.blocks.map((block, index) => (
+                            <div key={`${selectedDay._id}-preview-${index}`} className="rounded-md border border-border p-3 text-sm">
+                              <p className="mb-1 text-xs font-semibold uppercase text-slate-500">{block.type}</p>
+                              <div className="text-slate-700">{formatBlock(block)}</div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+                      {(selectedDay.assets ?? []).length ? (
+                        <div className="flex flex-wrap gap-2">
+                          {selectedDay.assets.map((asset) => (
+                            <a key={asset} className="rounded-md bg-teal-50 px-3 py-2 text-sm text-primary" href={asset} target="_blank" rel="noreferrer">
+                              {asset.split("/").pop()}
+                            </a>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-slate-500">No class content yet.</p>
+                  )}
+                </>
+              ) : (
+                <p className="text-sm text-slate-500">Select a class to review its content.</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Private Comments</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {selectedClassId && user?.role === "admin" ? (
+                <form
+                  className="space-y-3"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    const message = commentText.trim();
+                    if (!message) return;
+                    createComment.mutate({ message });
+                  }}
+                >
+                  <Textarea placeholder="Leave a private comment for the assigned instructor" value={commentText} onChange={(event) => setCommentText(event.target.value)} />
+                  <Button disabled={createComment.isPending || !commentText.trim()}>
+                    <Send size={16} />
+                    Send comment
+                  </Button>
+                </form>
+              ) : null}
+
+              <div className="space-y-3">
+                {topLevelComments.map((comment) => (
+                  <div key={comment._id} className="rounded-md border border-border p-3">
+                    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                      <MessageSquare size={14} />
+                      <span className="font-medium text-slate-700">{comment.authorName}</span>
+                      <Badge tone={comment.authorRole === "admin" ? "info" : "neutral"}>{comment.authorRole}</Badge>
+                      <span>{new Date(comment.createdAt).toLocaleString()}</span>
+                    </div>
+                    <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{comment.message}</p>
+
+                    {(repliesByComment[comment._id] ?? []).length ? (
+                      <div className="mt-3 space-y-2 border-l-2 border-border pl-3">
+                        {(repliesByComment[comment._id] ?? []).map((reply) => (
+                          <div key={reply._id} className="rounded-md bg-muted p-3">
+                            <div className="mb-1 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                              <Reply size={14} />
+                              <span className="font-medium text-slate-700">{reply.authorName}</span>
+                              <Badge tone={reply.authorRole === "admin" ? "info" : "neutral"}>{reply.authorRole}</Badge>
+                              <span>{new Date(reply.createdAt).toLocaleString()}</span>
+                            </div>
+                            <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{reply.message}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    <form
+                      className="mt-3 flex flex-col gap-2 sm:flex-row"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        const message = (replyTextByComment[comment._id] ?? "").trim();
+                        if (!message) return;
+                        createComment.mutate({ message, parentId: comment._id });
+                      }}
+                    >
+                      <Input
+                        placeholder="Reply"
+                        value={replyTextByComment[comment._id] ?? ""}
+                        onChange={(event) => setReplyTextByComment((current) => ({ ...current, [comment._id]: event.target.value }))}
+                      />
+                      <Button variant="outline" disabled={createComment.isPending || !(replyTextByComment[comment._id] ?? "").trim()}>
+                        <Reply size={16} />
+                        Reply
+                      </Button>
+                    </form>
+                  </div>
+                ))}
+                {selectedClassId && topLevelComments.length === 0 ? <p className="text-sm text-slate-500">No private comments yet.</p> : null}
+                {!selectedClassId ? <p className="text-sm text-slate-500">Select a class to open its private comment thread.</p> : null}
+              </div>
+            </CardContent>
+          </Card>
+
           <Card>
             <CardHeader>
               <CardTitle>Day Content</CardTitle>
@@ -373,47 +563,49 @@ export function ClassStudioPage() {
               </div>
             </CardContent>
           </Card>
-          <Card>
-            <CardHeader>
-              <CardTitle>Grade Submissions</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form className="mb-4 grid gap-3 md:grid-cols-[1fr_120px]" onSubmit={gradeForm.handleSubmit((values) => gradeSubmission.mutate(values))}>
-                <select className="h-10 rounded-md border border-border bg-white px-3 text-sm" {...gradeForm.register("submissionId")}>
-                  <option value="">Select submission</option>
-                  {daySubmissions.map((submission) => (
-                    <option key={submission.id} value={submission.id}>
-                      {submission.studentName} - {submission.assignmentTitle}
-                    </option>
-                  ))}
-                </select>
-                <Input type="number" placeholder="Grade" {...gradeForm.register("grade", { valueAsNumber: true })} />
-                <Textarea className="md:col-span-2" placeholder="Feedback" {...gradeForm.register("feedback")} />
-                <Button className="md:col-span-2" disabled={gradeSubmission.isPending}>
-                  <Star size={16} />
-                  Save grade
-                </Button>
-              </form>
-              <Table>
-                <thead>
-                  <tr>
-                    <Th>Student</Th>
-                    <Th>Assignment</Th>
-                    <Th>Grade</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {daySubmissions.map((submission) => (
-                    <tr key={submission.id}>
-                      <Td>{submission.studentName}</Td>
-                      <Td>{submission.assignmentTitle}</Td>
-                      <Td>{submission.grade ?? "Pending"}</Td>
+          {user?.role === "instructor" ? (
+            <Card>
+              <CardHeader>
+                <CardTitle>Grade Submissions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form className="mb-4 grid gap-3 md:grid-cols-[1fr_120px]" onSubmit={gradeForm.handleSubmit((values) => gradeSubmission.mutate(values))}>
+                  <select className="h-10 rounded-md border border-border bg-white px-3 text-sm" {...gradeForm.register("submissionId")}>
+                    <option value="">Select submission</option>
+                    {daySubmissions.map((submission) => (
+                      <option key={submission.id} value={submission.id}>
+                        {submission.studentName} - {submission.assignmentTitle}
+                      </option>
+                    ))}
+                  </select>
+                  <Input type="number" placeholder="Grade" {...gradeForm.register("grade", { valueAsNumber: true })} />
+                  <Textarea className="md:col-span-2" placeholder="Feedback" {...gradeForm.register("feedback")} />
+                  <Button className="md:col-span-2" disabled={gradeSubmission.isPending}>
+                    <Star size={16} />
+                    Save grade
+                  </Button>
+                </form>
+                <Table>
+                  <thead>
+                    <tr>
+                      <Th>Student</Th>
+                      <Th>Assignment</Th>
+                      <Th>Grade</Th>
                     </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </CardContent>
-          </Card>
+                  </thead>
+                  <tbody>
+                    {daySubmissions.map((submission) => (
+                      <tr key={submission.id}>
+                        <Td>{submission.studentName}</Td>
+                        <Td>{submission.assignmentTitle}</Td>
+                        <Td>{submission.grade ?? "Pending"}</Td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       </div>
     </>

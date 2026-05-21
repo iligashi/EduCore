@@ -54,6 +54,21 @@ export const ClassBackup = model(
   )
 );
 
+export const ClassComment = model(
+  "ClassComment",
+  new Schema(
+    {
+      classId: { type: String, required: true, index: true },
+      message: { type: String, required: true },
+      authorId: { type: String, required: true, index: true },
+      authorName: { type: String, required: true },
+      authorRole: { type: String, enum: ["admin", "instructor"], required: true },
+      parentId: { type: Schema.Types.ObjectId, ref: "ClassComment", default: null, index: true }
+    },
+    commonOptions
+  )
+);
+
 export const Notification = model(
   "Notification",
   new Schema(
@@ -63,6 +78,7 @@ export const Notification = model(
       title: { type: String, required: true },
       message: { type: String, required: true },
       type: { type: String, default: "system" },
+      metadata: { type: Schema.Types.Mixed, default: {} },
       readAt: { type: Date, default: null }
     },
     commonOptions

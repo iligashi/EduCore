@@ -25,6 +25,22 @@ const assignmentBody = z.object({
   points: z.coerce.number().int().min(1).max(1000).default(100)
 });
 
+interface ClassHealthRow {
+  classId: string;
+  courseTitle: string;
+  room: string;
+  instructorUserId: string;
+  instructorName: string;
+}
+
+interface DayAssignmentStats {
+  dayId: string | null;
+  assignments: number;
+  submissions: number;
+  gradedSubmissions: number;
+  ungradedSubmissions: number;
+}
+
 async function currentStudentId(userId: string) {
   const [student] = await rows<{ id: string }>("SELECT id FROM students WHERE user_id = :userId", { userId });
   if (!student) throw new HttpError(403, "Student profile not found");
@@ -85,6 +101,73 @@ async function assertAssignmentWritable(user: Express.UserClaims, assignmentId: 
   if (!assignment) {
     throw new HttpError(403, "You can only manage assignments for your own courses");
   }
+}
+
+async function getClassHealth(classId?: string) {
+  const classFilter = classId ? "WHERE classes.id = :classId" : "";
+  const classRecords = await rows<ClassHealthRow>(
+    `SELECT classes.id AS classId, courses.title AS courseTitle, classes.room,
+            instructors.user_id AS instructorUserId, users.full_name AS instructorName
+     FROM classes
+     JOIN courses ON courses.id = classes.course_id
+     JOIN instructors ON instructors.id = courses.instructor_id
+     JOIN users ON users.id = instructors.user_id
+     ${classFilter}
+     ORDER BY courses.title, classes.room`,
+    { classId }
+  );
+
+  return Promise.all(
+    classRecords.map(async (classRecord) => {
+      const days = await ClassDay.find({ classId: classRecord.classId }).sort({ dayNumber: 1, createdAt: 1 }).lean();
+      const assignmentStats = await rows<DayAssignmentStats>(
+        `SELECT assignments.class_day_id AS dayId,
+                COUNT(DISTINCT assignments.id) AS assignments,
+                COUNT(submissions.id) AS submissions,
+                SUM(CASE WHEN submissions.id IS NOT NULL AND submissions.grade IS NOT NULL THEN 1 ELSE 0 END) AS gradedSubmissions,
+                SUM(CASE WHEN submissions.id IS NOT NULL AND submissions.grade IS NULL THEN 1 ELSE 0 END) AS ungradedSubmissions
+         FROM assignments
+         LEFT JOIN submissions ON submissions.assignment_id = assignments.id
+         WHERE assignments.class_id = :classId
+         GROUP BY assignments.class_day_id`,
+        { classId: classRecord.classId }
+      );
+      const statsByDay = new Map(assignmentStats.map((item) => [item.dayId, item]));
+      const dayHealth = days.map((day) => {
+        const dayId = String(day._id);
+        const stats = statsByDay.get(dayId);
+        return {
+          dayId,
+          dayNumber: day.dayNumber,
+          title: day.title,
+          published: day.published,
+          assignments: Number(stats?.assignments ?? 0),
+          submissions: Number(stats?.submissions ?? 0),
+          gradedSubmissions: Number(stats?.gradedSubmissions ?? 0),
+          ungradedSubmissions: Number(stats?.ungradedSubmissions ?? 0)
+        };
+      });
+      const unlinkedStats = statsByDay.get(null);
+      const totalAssignments = assignmentStats.reduce((total, item) => total + Number(item.assignments ?? 0), 0);
+      const totalSubmissions = assignmentStats.reduce((total, item) => total + Number(item.submissions ?? 0), 0);
+      const gradedSubmissions = assignmentStats.reduce((total, item) => total + Number(item.gradedSubmissions ?? 0), 0);
+      const ungradedSubmissions = assignmentStats.reduce((total, item) => total + Number(item.ungradedSubmissions ?? 0), 0);
+
+      return {
+        ...classRecord,
+        totalDays: days.length,
+        assignmentDays: assignmentStats.filter((item) => item.dayId).length,
+        gradedDays: assignmentStats.filter((item) => item.dayId && Number(item.gradedSubmissions ?? 0) > 0).length,
+        ungradedDays: assignmentStats.filter((item) => item.dayId && Number(item.ungradedSubmissions ?? 0) > 0).length,
+        totalAssignments,
+        totalSubmissions,
+        gradedSubmissions,
+        ungradedSubmissions,
+        unlinkedAssignments: Number(unlinkedStats?.assignments ?? 0),
+        days: dayHealth
+      };
+    })
+  );
 }
 
 async function assertStudentCanSubmit(studentId: string, assignmentId: string) {
@@ -150,6 +233,36 @@ assignmentRoutes.get(
       { search, userId: req.user?.id }
     );
     res.json({ data, meta: { page, pageSize, total: count.total } });
+  })
+);
+
+assignmentRoutes.get(
+  "/class-health",
+  authorize("admin"),
+  asyncHandler(async (_req, res) => {
+    res.json({ data: await getClassHealth() });
+  })
+);
+
+assignmentRoutes.post(
+  "/class-health/:id/notify-ungraded",
+  authorize("admin"),
+  validate(idParamsSchema),
+  asyncHandler(async (req, res) => {
+    const [health] = await getClassHealth(String(req.params.id));
+    if (!health) throw new HttpError(404, "Class not found");
+    if (health.ungradedSubmissions <= 0) {
+      throw new HttpError(422, "This class has no ungraded submissions");
+    }
+
+    const notification = await Notification.create({
+      userId: health.instructorUserId,
+      title: "Ungraded submissions reminder",
+      message: `${health.courseTitle} / ${health.room} has ${health.ungradedSubmissions} ungraded submission${health.ungradedSubmissions === 1 ? "" : "s"}. Please review the pending work.`,
+      type: "grading-reminder"
+    });
+    getIo()?.to(`user:${health.instructorUserId}`).emit("notification:new", notification);
+    res.status(201).json(notification);
   })
 );
 
@@ -335,7 +448,7 @@ assignmentRoutes.post(
 
 assignmentRoutes.put(
   "/submissions/:id/grade",
-  authorize("admin", "instructor"),
+  authorize("instructor"),
   validate(
     z.object({
       params: z.object({ id: z.string().uuid() }),

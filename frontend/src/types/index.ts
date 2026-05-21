@@ -27,6 +27,8 @@ export interface Student {
   department: string;
   semester: number;
   status: string;
+  classIds?: string | null;
+  classNames?: string | null;
 }
 
 export interface Instructor {
@@ -36,6 +38,8 @@ export interface Instructor {
   email: string;
   specialization: string;
   status: string;
+  classIds?: string | null;
+  classNames?: string | null;
 }
 
 export interface Course {
@@ -52,6 +56,8 @@ export interface ClassRecord {
   id: string;
   courseId: string;
   courseTitle: string;
+  instructorId?: string;
+  instructorName?: string;
   room: string;
   schedule: Record<string, unknown> | string;
   startsAt?: string;
@@ -68,6 +74,18 @@ export interface ClassDay {
   blocks: { type: string; text?: string; url?: string }[];
   assets: string[];
   published: boolean;
+}
+
+export interface ClassComment {
+  _id: string;
+  classId: string;
+  message: string;
+  authorId: string;
+  authorName: string;
+  authorRole: "admin" | "instructor";
+  parentId?: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Assignment {

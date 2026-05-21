@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { v4 as uuid } from "uuid";
-import { ClassBackup, ClassDay } from "../../database/mongo.models.js";
+import { ClassBackup, ClassComment, ClassDay } from "../../database/mongo.models.js";
 import { authorize } from "../../middleware/authorize.middleware.js";
 import { validate } from "../../middleware/validate.middleware.js";
 import { execute, rows } from "../../database/mysql.js";
@@ -34,6 +34,11 @@ const classDayBody = z.object({
   blocks: z.array(z.record(z.unknown())).default([]),
   assets: z.array(z.string()).default([]),
   published: z.coerce.boolean().default(false)
+});
+
+const classCommentBody = z.object({
+  message: z.string().min(1).max(2000),
+  parentId: z.string().regex(/^[0-9a-fA-F]{24}$/).optional()
 });
 
 async function resolveInstructorId(user: Express.UserClaims, bodyInstructorId?: string) {
@@ -239,10 +244,12 @@ courseRoutes.get(
         : "";
     const data = await rows(
       `SELECT classes.id, classes.course_id AS courseId, courses.title AS courseTitle,
+              courses.instructor_id AS instructorId, users.full_name AS instructorName,
               classes.room, classes.schedule, classes.starts_at AS startsAt, classes.ends_at AS endsAt
        FROM classes
        JOIN courses ON courses.id = classes.course_id
        JOIN instructors ON instructors.id = courses.instructor_id
+       JOIN users ON users.id = instructors.user_id
        WHERE 1 = 1
        ${instructorFilter}
        ${studentFilter}
@@ -366,6 +373,41 @@ courseRoutes.get(
       { classId: req.params.id }
     );
     res.json({ data });
+  })
+);
+
+courseRoutes.get(
+  "/classes/:id/comments",
+  authorize("admin", "instructor"),
+  validate(z.object({ params: z.object({ id: z.string().uuid() }) })),
+  asyncHandler(async (req, res) => {
+    await assertClassWritable(req.user!, String(req.params.id));
+    const data = await ClassComment.find({ classId: req.params.id }).sort({ createdAt: 1 }).lean();
+    res.json({ data });
+  })
+);
+
+courseRoutes.post(
+  "/classes/:id/comments",
+  authorize("admin", "instructor"),
+  validate(z.object({ params: z.object({ id: z.string().uuid() }), body: classCommentBody })),
+  asyncHandler(async (req, res) => {
+    await assertClassWritable(req.user!, String(req.params.id));
+
+    if (req.body.parentId) {
+      const parent = await ClassComment.findOne({ _id: req.body.parentId, classId: req.params.id });
+      if (!parent) throw new HttpError(422, "Parent comment does not belong to this class");
+    }
+
+    const comment = await ClassComment.create({
+      classId: req.params.id,
+      message: req.body.message,
+      parentId: req.body.parentId ?? null,
+      authorId: req.user!.id,
+      authorName: req.user!.fullName,
+      authorRole: req.user!.role
+    });
+    res.status(201).json(comment);
   })
 );
 

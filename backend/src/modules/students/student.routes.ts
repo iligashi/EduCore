@@ -4,8 +4,9 @@ import { z } from "zod";
 import { v4 as uuid } from "uuid";
 import { authorize } from "../../middleware/authorize.middleware.js";
 import { validate } from "../../middleware/validate.middleware.js";
-import { rows, withTransaction } from "../../database/mysql.js";
+import { execute, rows, withTransaction } from "../../database/mysql.js";
 import { asyncHandler } from "../../utils/async-handler.js";
+import { HttpError } from "../../utils/http-error.js";
 import { getPagination } from "../../utils/pagination.js";
 import { idParamsSchema } from "../../utils/schemas.js";
 
@@ -29,9 +30,44 @@ const updateStudentSchema = idParamsSchema.extend({
     studentCode: z.string().min(2).max(40).optional(),
     department: z.string().min(2).max(120).optional(),
     semester: z.coerce.number().int().min(1).max(12).optional(),
-    status: z.enum(["active", "inactive"]).optional()
+    status: z.enum(["active", "inactive"]).optional(),
+    classIds: z.array(z.string().uuid()).optional()
   })
 });
+
+const resetStudentPasswordSchema = idParamsSchema.extend({
+  body: z.object({
+    password: z.string().min(8).max(100)
+  })
+});
+
+async function getStudentById(id: string) {
+  const [student] = await rows(
+    `SELECT students.id, students.student_code AS studentCode, students.department, students.semester,
+            users.id AS userId, users.full_name AS fullName, users.email, users.status,
+            (
+              SELECT GROUP_CONCAT(enrollments.class_id ORDER BY courses.title, classes.room SEPARATOR ',')
+              FROM enrollments
+              JOIN classes ON classes.id = enrollments.class_id
+              JOIN courses ON courses.id = classes.course_id
+              WHERE enrollments.student_id = students.id AND enrollments.status = 'active'
+            ) AS classIds,
+            (
+              SELECT GROUP_CONCAT(CONCAT(courses.title, ' / ', classes.room) ORDER BY courses.title, classes.room SEPARATOR '; ')
+              FROM enrollments
+              JOIN classes ON classes.id = enrollments.class_id
+              JOIN courses ON courses.id = classes.course_id
+              WHERE enrollments.student_id = students.id AND enrollments.status = 'active'
+            ) AS classNames
+     FROM students
+     JOIN users ON users.id = students.user_id
+     WHERE students.id = :id`,
+    { id }
+  );
+
+  if (!student) throw new HttpError(404, "Student not found");
+  return student;
+}
 
 studentRoutes.get(
   "/",
@@ -39,6 +75,12 @@ studentRoutes.get(
   asyncHandler(async (req, res) => {
     const { pageSize, offset, page } = getPagination(req.query);
     const search = `%${String(req.query.search ?? "")}%`;
+    const status = String(req.query.status ?? "");
+    const department = String(req.query.department ?? "");
+    const semesterValue = String(req.query.semester ?? "");
+    const parsedSemester = Number(semesterValue);
+    const semester = semesterValue && Number.isFinite(parsedSemester) ? parsedSemester : null;
+    const classId = String(req.query.classId ?? "");
     const instructorFilter =
       req.user?.role === "instructor"
         ? `AND EXISTS (
@@ -53,22 +95,56 @@ studentRoutes.get(
     const data = await rows(
       `SELECT students.id, students.student_code AS studentCode, students.department, students.semester,
               users.id AS userId, users.full_name AS fullName, users.email, users.status,
-              students.created_at AS createdAt
+              students.created_at AS createdAt,
+              (
+                SELECT GROUP_CONCAT(enrollments.class_id ORDER BY courses.title, classes.room SEPARATOR ',')
+                FROM enrollments
+                JOIN classes ON classes.id = enrollments.class_id
+                JOIN courses ON courses.id = classes.course_id
+                WHERE enrollments.student_id = students.id AND enrollments.status = 'active'
+              ) AS classIds,
+              (
+                SELECT GROUP_CONCAT(CONCAT(courses.title, ' / ', classes.room) ORDER BY courses.title, classes.room SEPARATOR '; ')
+                FROM enrollments
+                JOIN classes ON classes.id = enrollments.class_id
+                JOIN courses ON courses.id = classes.course_id
+                WHERE enrollments.student_id = students.id AND enrollments.status = 'active'
+              ) AS classNames
        FROM students
        JOIN users ON users.id = students.user_id
        WHERE (users.full_name LIKE :search OR users.email LIKE :search OR students.student_code LIKE :search OR students.department LIKE :search)
+       AND (:status = '' OR users.status = :status)
+       AND (:department = '' OR students.department = :department)
+       AND (:semester IS NULL OR students.semester = :semester)
+       AND (:classId = '' OR EXISTS (
+         SELECT 1
+         FROM enrollments
+         WHERE enrollments.student_id = students.id
+           AND enrollments.class_id = :classId
+           AND enrollments.status = 'active'
+       ))
        ${instructorFilter}
        ORDER BY users.full_name
        LIMIT :pageSize OFFSET :offset`,
-      { search, pageSize, offset, userId: req.user?.id }
+      { search, status, department, semester, classId, pageSize, offset, userId: req.user?.id }
     );
     const [count] = await rows<{ total: number }>(
       `SELECT COUNT(*) AS total
        FROM students
        JOIN users ON users.id = students.user_id
        WHERE (users.full_name LIKE :search OR users.email LIKE :search OR students.student_code LIKE :search OR students.department LIKE :search)
+       AND (:status = '' OR users.status = :status)
+       AND (:department = '' OR students.department = :department)
+       AND (:semester IS NULL OR students.semester = :semester)
+       AND (:classId = '' OR EXISTS (
+         SELECT 1
+         FROM enrollments
+         WHERE enrollments.student_id = students.id
+           AND enrollments.class_id = :classId
+           AND enrollments.status = 'active'
+       ))
        ${instructorFilter}`,
-      { search, userId: req.user?.id }
+      { search, status, department, semester, classId, userId: req.user?.id }
     );
     res.json({ data, meta: { page, pageSize, total: count.total } });
   })
@@ -105,12 +181,7 @@ studentRoutes.post(
         }
       );
     });
-    const [student] = await rows(
-      `SELECT students.id, students.student_code AS studentCode, students.department, students.semester,
-              users.id AS userId, users.full_name AS fullName, users.email, users.status
-       FROM students JOIN users ON users.id = students.user_id WHERE students.id = :id`,
-      { id: studentId }
-    );
+    const student = await getStudentById(studentId);
     res.status(201).json(student);
   })
 );
@@ -215,14 +286,48 @@ studentRoutes.put(
           status: req.body.status
         }
       );
+      if (Array.isArray(req.body.classIds)) {
+        await connection.execute("UPDATE enrollments SET status = 'dropped' WHERE student_id = :id AND status = 'active'", {
+          id: req.params.id
+        });
+        for (const classId of req.body.classIds) {
+          await connection.execute(
+            `INSERT INTO enrollments (id, student_id, class_id, status)
+             VALUES (:id, :studentId, :classId, 'active')
+             ON DUPLICATE KEY UPDATE status = 'active'`,
+            { id: uuid(), studentId: req.params.id, classId }
+          );
+        }
+      }
     });
-    const [student] = await rows(
-      `SELECT students.id, students.student_code AS studentCode, students.department, students.semester,
-              users.id AS userId, users.full_name AS fullName, users.email, users.status
-       FROM students JOIN users ON users.id = students.user_id WHERE students.id = :id`,
+    const student = await getStudentById(String(req.params.id));
+    res.json(student);
+  })
+);
+
+studentRoutes.post(
+  "/:id/reset-password",
+  authorize("admin"),
+  validate(resetStudentPasswordSchema),
+  asyncHandler(async (req, res) => {
+    const passwordHash = await bcrypt.hash(req.body.password, 12);
+    const result = await execute(
+      `UPDATE users
+       JOIN students ON students.user_id = users.id
+       SET users.password_hash = :passwordHash
+       WHERE students.id = :id`,
+      { id: req.params.id, passwordHash }
+    );
+    if (!result.affectedRows) throw new HttpError(404, "Student not found");
+    await execute(
+      `UPDATE refresh_tokens
+       JOIN users ON users.id = refresh_tokens.user_id
+       JOIN students ON students.user_id = users.id
+       SET refresh_tokens.revoked_at = NOW()
+       WHERE students.id = :id AND refresh_tokens.revoked_at IS NULL`,
       { id: req.params.id }
     );
-    res.json(student);
+    res.json({ message: "Student password reset" });
   })
 );
 
