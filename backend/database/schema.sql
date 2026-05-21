@@ -76,7 +76,6 @@ CREATE TABLE IF NOT EXISTS attendance (
   date DATE NOT NULL,
   notes VARCHAR(255) NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uq_attendance_student_class_date (student_id, class_id, date),
   UNIQUE KEY uq_attendance_student_class_day (student_id, class_id, class_day_id),
   CONSTRAINT fk_attendance_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
   CONSTRAINT fk_attendance_class FOREIGN KEY (class_id) REFERENCES classes(id) ON DELETE CASCADE

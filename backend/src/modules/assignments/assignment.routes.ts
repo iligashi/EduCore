@@ -260,7 +260,7 @@ assignmentRoutes.get(
       `SELECT submissions.id, submissions.assignment_id AS assignmentId, submissions.student_id AS studentId,
               submissions.file_url AS fileUrl, submissions.notes, submissions.grade, submissions.feedback,
               submissions.submitted_at AS submittedAt, submissions.graded_at AS gradedAt,
-              assignments.title AS assignmentTitle, assignments.class_day_id AS dayId,
+              assignments.title AS assignmentTitle, assignments.class_id AS classId, assignments.class_day_id AS dayId,
               users.full_name AS studentName, courses.title AS courseTitle, classes.room AS classRoom
        FROM submissions
        JOIN assignments ON assignments.id = submissions.assignment_id
@@ -312,6 +312,23 @@ assignmentRoutes.post(
         notes: parsed.notes ?? ""
       }
     );
+
+    const [assignment] = await rows<{ instructorUserId: string; title: string }>(
+      `SELECT instructors.user_id AS instructorUserId, assignments.title
+       FROM assignments
+       JOIN courses ON courses.id = assignments.course_id
+       JOIN instructors ON instructors.id = courses.instructor_id
+       WHERE assignments.id = :assignmentId`,
+      { assignmentId: parsed.assignmentId }
+    );
+    if (assignment) {
+      getIo()?.to(`user:${assignment.instructorUserId}`).emit("submission:new", {
+        assignmentId: parsed.assignmentId,
+        title: assignment.title,
+        studentId
+      });
+    }
+
     res.status(201).json({ id, assignmentId: parsed.assignmentId, studentId, fileUrl, notes: parsed.notes ?? "" });
   })
 );

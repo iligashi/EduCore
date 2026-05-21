@@ -348,6 +348,27 @@ courseRoutes.get(
   })
 );
 
+courseRoutes.get(
+  "/classes/:id/students",
+  authorize("admin", "instructor"),
+  validate(z.object({ params: z.object({ id: z.string().uuid() }) })),
+  asyncHandler(async (req, res) => {
+    await assertClassWritable(req.user!, String(req.params.id));
+    const data = await rows(
+      `SELECT students.id, students.user_id AS userId, students.student_code AS studentCode,
+              students.department, students.semester, users.full_name AS fullName,
+              users.email, users.status
+       FROM enrollments
+       JOIN students ON students.id = enrollments.student_id
+       JOIN users ON users.id = students.user_id
+       WHERE enrollments.class_id = :classId AND enrollments.status = 'active'
+       ORDER BY users.full_name`,
+      { classId: req.params.id }
+    );
+    res.json({ data });
+  })
+);
+
 courseRoutes.post(
   "/classes/:id/days",
   authorize("admin", "instructor"),

@@ -115,6 +115,73 @@ studentRoutes.post(
   })
 );
 
+studentRoutes.get(
+  "/:id/history",
+  authorize("admin", "instructor"),
+  validate(idParamsSchema),
+  asyncHandler(async (req, res) => {
+    if (req.user!.role === "instructor") {
+      const [allowed] = await rows<{ id: string }>(
+        `SELECT students.id
+         FROM students
+         JOIN enrollments ON enrollments.student_id = students.id
+         JOIN classes ON classes.id = enrollments.class_id
+         JOIN courses ON courses.id = classes.course_id
+         JOIN instructors ON instructors.id = courses.instructor_id
+         WHERE students.id = :studentId AND instructors.user_id = :userId`,
+        { studentId: req.params.id, userId: req.user!.id }
+      );
+      if (!allowed) {
+        res.status(403).json({ message: "You can only view history for students in your classes" });
+        return;
+      }
+    }
+
+    const [student] = await rows(
+      `SELECT students.id, students.student_code AS studentCode, students.department, students.semester,
+              users.full_name AS fullName, users.email
+       FROM students
+       JOIN users ON users.id = students.user_id
+       WHERE students.id = :studentId`,
+      { studentId: req.params.id }
+    );
+    const courses = await rows(
+      `SELECT DISTINCT courses.id, courses.title, classes.id AS classId, classes.room, enrollments.status
+       FROM enrollments
+       JOIN classes ON classes.id = enrollments.class_id
+       JOIN courses ON courses.id = classes.course_id
+       WHERE enrollments.student_id = :studentId
+       ORDER BY courses.title`,
+      { studentId: req.params.id }
+    );
+    const submissions = await rows(
+      `SELECT submissions.id, assignments.title AS assignmentTitle, courses.title AS courseTitle,
+              classes.room AS classRoom, submissions.file_url AS fileUrl,
+              submissions.grade, submissions.feedback, submissions.submitted_at AS submittedAt,
+              submissions.graded_at AS gradedAt
+       FROM submissions
+       JOIN assignments ON assignments.id = submissions.assignment_id
+       JOIN courses ON courses.id = assignments.course_id
+       LEFT JOIN classes ON classes.id = assignments.class_id
+       WHERE submissions.student_id = :studentId
+       ORDER BY submissions.submitted_at DESC`,
+      { studentId: req.params.id }
+    );
+    const attendance = await rows(
+      `SELECT attendance.id, courses.title AS courseTitle, classes.room,
+              attendance.class_day_id AS dayId, attendance.status, attendance.date, attendance.notes
+       FROM attendance
+       JOIN classes ON classes.id = attendance.class_id
+       JOIN courses ON courses.id = classes.course_id
+       WHERE attendance.student_id = :studentId
+       ORDER BY attendance.date DESC`,
+      { studentId: req.params.id }
+    );
+
+    res.json({ student, courses, submissions, attendance });
+  })
+);
+
 studentRoutes.put(
   "/:id",
   authorize("admin"),

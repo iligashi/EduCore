@@ -57,9 +57,9 @@ export function NotificationsPage() {
                 <Textarea placeholder="Message" {...form.register("message")} />
                 <Input placeholder="Type" {...form.register("type")} />
                 <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...form.register("role")}>
-                  <option value="">Everyone</option>
-                  <option value="admin">Admins</option>
-                  <option value="instructor">Instructors</option>
+                  {user?.role === "admin" ? <option value="">Everyone</option> : null}
+                  {user?.role === "admin" ? <option value="admin">Admins</option> : null}
+                  {user?.role === "admin" ? <option value="instructor">Instructors</option> : null}
                   <option value="student">Students</option>
                 </select>
                 <Button className="w-full" disabled={createMutation.isPending}>
@@ -101,4 +101,3 @@ export function NotificationsPage() {
     </>
   );
 }
-

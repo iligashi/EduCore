@@ -85,12 +85,17 @@ export interface Assignment {
 
 export interface AttendanceRecord {
   id: string;
+  studentId: string;
+  classId: string;
   dayId?: string;
   studentName: string;
   courseTitle: string;
   status: "present" | "absent" | "late" | "excused";
   date: string;
   notes?: string;
+  createdAt?: string;
+  editableUntil?: string;
+  isEditable?: number | boolean;
 }
 
 export interface NotificationItem {

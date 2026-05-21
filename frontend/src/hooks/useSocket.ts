@@ -21,9 +21,12 @@ export function useSocket(enabled: boolean) {
       }));
     });
 
+    socket.on("submission:new", () => {
+      queryClient.invalidateQueries({ queryKey: ["submissions"] });
+    });
+
     return () => {
       socket.disconnect();
     };
   }, [enabled, queryClient]);
 }
-

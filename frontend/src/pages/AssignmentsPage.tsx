@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { FileUp, Plus, Star } from "lucide-react";
@@ -19,6 +19,9 @@ interface Submission {
   assignmentTitle: string;
   studentName: string;
   courseTitle: string;
+  classId?: string;
+  classRoom?: string;
+  dayId?: string;
   fileUrl: string;
   grade?: number | null;
   feedback?: string;
@@ -40,6 +43,7 @@ export function AssignmentsPage() {
   const queryClient = useQueryClient();
   const [submissionFile, setSubmissionFile] = useState<File | null>(null);
   const [submissionAssignmentId, setSubmissionAssignmentId] = useState("");
+  const [selectedSubmissionClassId, setSelectedSubmissionClassId] = useState("");
   const assignmentForm = useForm<z.infer<typeof assignmentSchema>>({
     resolver: zodResolver(assignmentSchema),
     defaultValues: { points: 100 }
@@ -63,6 +67,10 @@ export function AssignmentsPage() {
     queryKey: ["submissions"],
     queryFn: () => api.get<{ data: Submission[] }>("/assignments/submissions")
   });
+  const filteredSubmissions = useMemo(
+    () => (submissions?.data ?? []).filter((submission) => !selectedSubmissionClassId || submission.classId === selectedSubmissionClassId),
+    [selectedSubmissionClassId, submissions?.data]
+  );
   const createAssignment = useMutation({
     mutationFn: (values: z.infer<typeof assignmentSchema>) =>
       api.post<Assignment>("/assignments", {
@@ -187,7 +195,7 @@ export function AssignmentsPage() {
                 <form className="space-y-3" onSubmit={gradeForm.handleSubmit((values) => gradeSubmission.mutate(values))}>
                   <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...gradeForm.register("submissionId")}>
                     <option value="">Select submission</option>
-                    {(submissions?.data ?? []).map((submission) => (
+                    {filteredSubmissions.map((submission) => (
                       <option key={submission.id} value={submission.id}>
                         {submission.studentName} - {submission.assignmentTitle}
                       </option>
@@ -239,7 +247,23 @@ export function AssignmentsPage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Submissions</CardTitle>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <CardTitle>Submissions</CardTitle>
+                {user?.role !== "student" ? (
+                  <select
+                    className="h-10 rounded-md border border-border bg-white px-3 text-sm"
+                    value={selectedSubmissionClassId}
+                    onChange={(event) => setSelectedSubmissionClassId(event.target.value)}
+                  >
+                    <option value="">All assigned classes</option>
+                    {(classes?.data ?? []).map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.courseTitle} / {item.room}
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+              </div>
             </CardHeader>
             <CardContent>
               <Table>
@@ -252,7 +276,7 @@ export function AssignmentsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(submissions?.data ?? []).map((submission) => (
+                  {filteredSubmissions.map((submission) => (
                     <tr key={submission.id}>
                       <Td>{submission.studentName}</Td>
                       <Td>

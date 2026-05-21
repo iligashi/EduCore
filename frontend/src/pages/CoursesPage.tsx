@@ -33,6 +33,13 @@ const classSchema = z.object({
 
 type ClassInput = z.infer<typeof classSchema>;
 
+const enrollmentSchema = z.object({
+  classId: z.string().uuid(),
+  studentId: z.string().uuid()
+});
+
+type EnrollmentInput = z.infer<typeof enrollmentSchema>;
+
 export function CoursesPage() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -43,8 +50,16 @@ export function CoursesPage() {
   const classForm = useForm<ClassInput>({
     resolver: zodResolver(classSchema)
   });
+  const enrollmentForm = useForm<EnrollmentInput>({
+    resolver: zodResolver(enrollmentSchema)
+  });
   const { data } = useQuery({ queryKey: ["courses"], queryFn: () => api.get<ApiList<Course>>("/courses") });
   const { data: classes } = useQuery({ queryKey: ["classes"], queryFn: () => api.get<{ data: ClassRecord[] }>("/courses/classes/all") });
+  const { data: students } = useQuery({
+    queryKey: ["students"],
+    queryFn: () => api.get<ApiList<{ id: string; fullName: string; studentCode: string }>>("/students"),
+    enabled: user?.role === "admin"
+  });
   const { data: instructors } = useQuery({
     queryKey: ["instructors"],
     queryFn: () => api.get<ApiList<Instructor>>("/instructors"),
@@ -67,6 +82,13 @@ export function CoursesPage() {
       }),
     onSuccess: () => {
       classForm.reset();
+      queryClient.invalidateQueries({ queryKey: ["classes"] });
+    }
+  });
+  const enrollMutation = useMutation({
+    mutationFn: (input: EnrollmentInput) => api.post(`/courses/classes/${input.classId}/enrollments`, { studentId: input.studentId }),
+    onSuccess: () => {
+      enrollmentForm.reset();
       queryClient.invalidateQueries({ queryKey: ["classes"] });
     }
   });
@@ -127,6 +149,35 @@ export function CoursesPage() {
                   <Button className="w-full" disabled={createClassMutation.isPending}>
                     <CalendarPlus size={16} />
                     Assign class
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Assign Student To Class</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form className="space-y-3" onSubmit={enrollmentForm.handleSubmit((values) => enrollMutation.mutate(values))}>
+                  <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...enrollmentForm.register("classId")}>
+                    <option value="">Select class</option>
+                    {(classes?.data ?? []).map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.courseTitle} / {item.room}
+                      </option>
+                    ))}
+                  </select>
+                  <select className="h-10 w-full rounded-md border border-border bg-white px-3 text-sm" {...enrollmentForm.register("studentId")}>
+                    <option value="">Select student</option>
+                    {(students?.data ?? []).map((student) => (
+                      <option key={student.id} value={student.id}>
+                        {student.fullName} / {student.studentCode}
+                      </option>
+                    ))}
+                  </select>
+                  <Button className="w-full" disabled={enrollMutation.isPending}>
+                    <Plus size={16} />
+                    Assign student
                   </Button>
                 </form>
               </CardContent>

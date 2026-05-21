@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, FileUp, Plus, Save, Star } from "lucide-react";
+import { Copy, FileText, FileUp, Image, Link, Plus, Save, Star, Trash2, Type } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Badge } from "../components/ui/Badge";
@@ -49,6 +49,9 @@ export function ClassStudioPage() {
   const [assetFile, setAssetFile] = useState<File | null>(null);
   const [backupTargetClassId, setBackupTargetClassId] = useState("");
   const [assetUrls, setAssetUrls] = useState<string[]>([]);
+  const [blocks, setBlocks] = useState<{ type: string; text?: string; url?: string }[]>([]);
+  const [blockType, setBlockType] = useState("paragraph");
+  const [blockText, setBlockText] = useState("");
 
   const dayForm = useForm<z.infer<typeof daySchema>>({
     resolver: zodResolver(daySchema),
@@ -99,6 +102,7 @@ export function ClassStudioPage() {
       published: selectedDay.published
     });
     setAssetUrls(selectedDay.assets ?? []);
+    setBlocks(selectedDay.blocks ?? []);
   }, [dayForm, selectedDay]);
 
   const saveDay = useMutation({
@@ -106,11 +110,7 @@ export function ClassStudioPage() {
       const payload = {
         ...values,
         assets: assetUrls,
-        blocks: [
-          { type: "heading", text: values.title },
-          { type: "paragraph", text: values.content ?? "" },
-          ...assetUrls.map((url) => ({ type: "asset", url }))
-        ]
+        blocks
       };
       if (selectedDayId) return api.put<ClassDay>(`/courses/classes/days/${selectedDayId}`, payload);
       return api.post<ClassDay>(`/courses/classes/${selectedClassId}/days`, payload);
@@ -129,7 +129,10 @@ export function ClassStudioPage() {
       return api.post<{ url: string }>("/cms/assets", form);
     },
     onSuccess: (result) => {
-      if (result?.url) setAssetUrls((current) => [...current, result.url]);
+      if (result?.url) {
+        setAssetUrls((current) => [...current, result.url]);
+        setBlocks((current) => [...current, { type: result.url.match(/\.(png|jpg|jpeg|gif|webp)$/i) ? "image" : "file", url: result.url }]);
+      }
       setAssetFile(null);
     }
   });
@@ -191,6 +194,7 @@ export function ClassStudioPage() {
                   setSelectedDayId("");
                   dayForm.reset({ published: false, content: "" });
                   setAssetUrls([]);
+                  setBlocks([]);
                 }}
               >
                 <option value="">Select class</option>
@@ -230,6 +234,7 @@ export function ClassStudioPage() {
                 onClick={() => {
                   setSelectedDayId("");
                   setAssetUrls([]);
+                  setBlocks([]);
                   dayForm.reset({ title: "", content: "", published: false });
                 }}
               >
@@ -276,6 +281,48 @@ export function ClassStudioPage() {
                   <Input placeholder="Day title" {...dayForm.register("title")} />
                 </div>
                 <Textarea placeholder="Text content for this day" {...dayForm.register("content")} />
+                <div className="rounded-md border border-border p-3">
+                  <div className="mb-3 grid gap-2 md:grid-cols-[150px_1fr_auto]">
+                    <select className="h-10 rounded-md border border-border bg-white px-3 text-sm" value={blockType} onChange={(event) => setBlockType(event.target.value)}>
+                      <option value="heading">Heading</option>
+                      <option value="paragraph">Paragraph</option>
+                      <option value="quote">Quote</option>
+                      <option value="link">Link</option>
+                    </select>
+                    <Input placeholder="Add blog-style block text or URL" value={blockText} onChange={(event) => setBlockText(event.target.value)} />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        if (!blockText.trim()) return;
+                        setBlocks((current) => [
+                          ...current,
+                          blockType === "link" ? { type: blockType, url: blockText.trim(), text: blockText.trim() } : { type: blockType, text: blockText.trim() }
+                        ]);
+                        setBlockText("");
+                      }}
+                    >
+                      <Plus size={16} />
+                      Add
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    {blocks.map((block, index) => {
+                      const Icon = block.type === "heading" ? Type : block.type === "image" ? Image : block.type === "file" ? FileText : block.type === "link" ? Link : FileText;
+                      return (
+                        <div key={`${block.type}-${index}`} className="flex items-center justify-between gap-3 rounded-md bg-muted p-3 text-sm">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <Icon size={16} className="shrink-0 text-primary" />
+                            <span className="truncate">{block.text ?? block.url}</span>
+                          </div>
+                          <button type="button" className="text-slate-500 hover:text-red-600" onClick={() => setBlocks((current) => current.filter((_, itemIndex) => itemIndex !== index))}>
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
                 <div className="flex flex-col gap-2 rounded-md border border-border p-3 sm:flex-row sm:items-center">
                   <Input type="file" onChange={(event) => setAssetFile(event.target.files?.[0] ?? null)} />
                   <Button type="button" variant="outline" disabled={!assetFile || uploadAsset.isPending} onClick={() => uploadAsset.mutate()}>
@@ -372,4 +419,3 @@ export function ClassStudioPage() {
     </>
   );
 }
-
