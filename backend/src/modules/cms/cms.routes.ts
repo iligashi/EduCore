@@ -196,6 +196,27 @@ cmsRoutes.put(
   })
 );
 
+cmsRoutes.get(
+  "/quiz-questions",
+  asyncHandler(async (req, res) => {
+    const requestedLessonId = req.query.lessonId ? String(req.query.lessonId) : undefined;
+    const courseIds = await visibleCourseIds(req.user!);
+    const lessonQuery: Record<string, unknown> = {};
+
+    if (requestedLessonId) lessonQuery._id = requestedLessonId;
+    if (courseIds) lessonQuery.courseId = { $in: courseIds };
+    if (req.user?.role === "student") lessonQuery.published = true;
+
+    const lessons = await Lesson.find(lessonQuery).select("_id").lean();
+    const lessonIds = lessons.map((lesson) => lesson._id);
+    const data = lessonIds.length
+      ? await QuizQuestion.find({ lessonId: { $in: lessonIds } }).sort({ createdAt: -1 })
+      : [];
+
+    res.json({ data });
+  })
+);
+
 cmsRoutes.post(
   "/quiz-questions",
   authorize("admin", "instructor"),
