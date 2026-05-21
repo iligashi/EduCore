@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CalendarPlus, Plus } from "lucide-react";
+import { BookOpen, CalendarDays, CalendarPlus, Clock, MapPin, Plus, UserRound } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Badge } from "../components/ui/Badge";
@@ -39,6 +39,24 @@ const enrollmentSchema = z.object({
 });
 
 type EnrollmentInput = z.infer<typeof enrollmentSchema>;
+
+function scheduleLabel(schedule: ClassRecord["schedule"]) {
+  if (!schedule) return "Schedule not set";
+  const parsed = typeof schedule === "string" ? tryParseSchedule(schedule) : schedule;
+  if (typeof parsed === "string") return parsed;
+  const days = Array.isArray(parsed.days) ? parsed.days.join(", ") : "";
+  const time = typeof parsed.time === "string" ? parsed.time : "";
+  const note = typeof parsed.note === "string" ? parsed.note : "";
+  return [days, time, note].filter(Boolean).join(" / ") || "Schedule not set";
+}
+
+function tryParseSchedule(value: string): Record<string, unknown> | string {
+  try {
+    return JSON.parse(value) as Record<string, unknown>;
+  } catch {
+    return value;
+  }
+}
 
 export function CoursesPage() {
   const { user } = useAuth();
@@ -92,6 +110,10 @@ export function CoursesPage() {
       queryClient.invalidateQueries({ queryKey: ["classes"] });
     }
   });
+
+  if (user?.role === "student") {
+    return <StudentCoursesView courses={data?.data ?? []} classes={classes?.data ?? []} />;
+  }
 
   return (
     <>
@@ -245,6 +267,99 @@ export function CoursesPage() {
           </CardContent>
         </Card>
         </div>
+      </div>
+    </>
+  );
+}
+
+function StudentCoursesView({ courses, classes }: { courses: Course[]; classes: ClassRecord[] }) {
+  return (
+    <>
+      <SectionHeader title="My Courses" description="Your enrolled classes in one place." />
+      <div className="grid gap-6 xl:grid-cols-[1fr_360px]">
+        <div className="space-y-4">
+          {courses.map((course) => {
+            const courseClasses = classes.filter((item) => item.courseId === course.id);
+            return (
+              <Card key={course.id}>
+                <CardContent className="p-5">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-teal-50 text-primary">
+                        <BookOpen size={22} />
+                      </div>
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-lg font-semibold text-slate-950">{course.title}</h2>
+                          <Badge tone={course.status === "published" ? "success" : "neutral"}>{course.status}</Badge>
+                        </div>
+                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">{course.description || "No description added."}</p>
+                      </div>
+                    </div>
+                    <Badge tone="info">{course.level}</Badge>
+                  </div>
+
+                  <div className="mt-5 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-md bg-muted p-3">
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-500">
+                        <UserRound size={14} />
+                        Instructor
+                      </div>
+                      <p className="mt-1 text-sm font-medium">{course.instructorName ?? "Not assigned"}</p>
+                    </div>
+                    <div className="rounded-md bg-muted p-3">
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-500">
+                        <CalendarDays size={14} />
+                        Classes
+                      </div>
+                      <p className="mt-1 text-sm font-medium">{courseClasses.length}</p>
+                    </div>
+                    <div className="rounded-md bg-muted p-3">
+                      <div className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-500">
+                        <Clock size={14} />
+                        Next
+                      </div>
+                      <p className="mt-1 text-sm font-medium">{courseClasses[0]?.startsAt ? new Date(courseClasses[0].startsAt).toLocaleDateString() : "No date"}</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+          {courses.length === 0 ? (
+            <Card>
+              <CardContent>
+                <p className="text-sm text-slate-500">No enrolled courses yet.</p>
+              </CardContent>
+            </Card>
+          ) : null}
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Class Schedule</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {classes.map((item) => (
+                <div key={item.id} className="rounded-md border border-border p-3">
+                  <p className="font-medium">{item.courseTitle}</p>
+                  <div className="mt-2 space-y-2 text-sm text-slate-600">
+                    <div className="flex items-center gap-2">
+                      <MapPin size={15} className="text-primary" />
+                      {item.room}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <CalendarDays size={15} className="text-primary" />
+                      {scheduleLabel(item.schedule)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {classes.length === 0 ? <p className="text-sm text-slate-500">No classes scheduled yet.</p> : null}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </>
   );

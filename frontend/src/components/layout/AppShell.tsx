@@ -6,7 +6,9 @@ import {
   FileBarChart,
   Gauge,
   GraduationCap,
+  Home,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   Megaphone,
   Search,
@@ -20,24 +22,27 @@ import { cn } from "../../utils/cn";
 import { Button } from "../ui/Button";
 import type { Role } from "../../types";
 
-const navItems = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "instructor", "student"] },
+const navItems: { to: string; label: string; icon: LucideIcon; roles: Role[] }[] = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "instructor"] },
+  { to: "/", label: "Home", icon: Home, roles: ["student"] },
   { to: "/students", label: "Students", icon: Users, roles: ["admin"] },
   { to: "/instructors", label: "Instructors", icon: GraduationCap, roles: ["admin"] },
-  { to: "/courses", label: "Courses", icon: BookOpen, roles: ["admin", "instructor", "student"] },
-  { to: "/content", label: "Content", icon: BookOpen, roles: ["student"] },
+  { to: "/courses", label: "Courses", icon: BookOpen, roles: ["admin", "instructor"] },
+  { to: "/content", label: "Lessons", icon: BookOpen, roles: ["student"] },
   { to: "/class-studio", label: "Class Studio", icon: CalendarDays, roles: ["admin", "instructor"] },
-  { to: "/assignments", label: "Assignments", icon: ClipboardCheck, roles: ["admin", "instructor", "student"] },
+  { to: "/assignments", label: "Assignments", icon: ClipboardCheck, roles: ["admin", "instructor"] },
+  { to: "/assignments", label: "Work", icon: ClipboardCheck, roles: ["student"] },
   { to: "/attendance", label: "Attendance", icon: Gauge, roles: ["admin", "instructor"] },
+  { to: "/success-center", label: "Success Center", icon: LifeBuoy, roles: ["admin", "instructor"] },
   { to: "/reports", label: "Reports", icon: FileBarChart, roles: ["admin"] },
   { to: "/cms", label: "CMS", icon: Megaphone, roles: ["admin"] },
-  { to: "/notifications", label: "Notifications", icon: Bell, roles: ["admin", "instructor", "student"] },
+  { to: "/notifications", label: "Notifications", icon: Bell, roles: ["admin", "instructor"] },
+  { to: "/notifications", label: "Inbox", icon: Bell, roles: ["student"] },
   { to: "/search", label: "Search", icon: Search, roles: ["admin", "instructor"] }
-] satisfies { to: string; label: string; icon: LucideIcon; roles: Role[] }[];
+];
 
 function navLabel(label: string, role: Role) {
   if (label !== "Dashboard") return label;
-  if (role === "student") return "My Courses";
   if (role === "instructor") return "Teaching";
   return "Dashboard";
 }
@@ -48,7 +53,7 @@ export function AppShell() {
   const visibleItems = navItems.filter((item) => item.roles.includes(user!.role));
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className={cn("min-h-screen bg-background", user?.role === "student" && "bg-slate-50")}>
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-border bg-white lg:block">
         <div className="flex h-16 items-center gap-3 border-b border-border px-5">
           <div className="flex h-10 w-10 items-center justify-center rounded-md bg-primary text-white">
@@ -81,7 +86,7 @@ export function AppShell() {
         <header className="sticky top-0 z-20 flex min-h-16 items-center justify-between border-b border-border bg-white/95 px-4 backdrop-blur lg:px-8">
           <div>
             <p className="text-sm font-medium text-slate-950">{user?.fullName}</p>
-            <p className="text-xs capitalize text-slate-500">{user?.role}</p>
+            <p className="text-xs capitalize text-slate-500">{user?.role === "student" ? "Student portal" : user?.role}</p>
           </div>
           <div className="flex items-center gap-2">
             <NavLink to="/notifications" className="rounded-md p-2 text-slate-500 hover:bg-muted hover:text-slate-900" title="Notifications">
@@ -116,7 +121,7 @@ export function AppShell() {
             </NavLink>
           ))}
         </nav>
-        <main className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
+        <main className={cn("mx-auto px-4 py-6 lg:px-8", user?.role === "student" ? "max-w-6xl" : "max-w-7xl")}>
           <Outlet />
         </main>
       </div>

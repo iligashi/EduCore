@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { v4 as uuid } from "uuid";
-import { ClassDay, Notification } from "../../database/mongo.models.js";
+import { ActivityLog, ClassDay, Notification } from "../../database/mongo.models.js";
 import { authorize } from "../../middleware/authorize.middleware.js";
 import { validate } from "../../middleware/validate.middleware.js";
 import { execute, rows } from "../../database/mysql.js";
@@ -95,21 +95,20 @@ async function assertAttendanceWindow(req: Express.Request, input: { id?: string
   }
 }
 
-async function maybeNotifyThreeAbsences(studentId: string, classId: string) {
+async function maybeRunAttendanceAutomations(studentId: string, classId: string) {
   const latest = await rows<{ id: string; status: string }>(
     `SELECT id, status
      FROM attendance
      WHERE student_id = :studentId AND class_id = :classId
      ORDER BY date DESC, created_at DESC
-     LIMIT 3`,
+     LIMIT 5`,
     { studentId, classId }
   );
 
-  if (latest.length < 3 || latest.some((record) => record.status !== "absent")) return;
-
-  const [student] = await rows<{ userId: string; courseTitle: string }>(
-    `SELECT students.user_id AS userId, courses.title AS courseTitle
+  const [student] = await rows<{ userId: string; studentName: string; courseTitle: string }>(
+    `SELECT students.user_id AS userId, users.full_name AS studentName, courses.title AS courseTitle
      FROM students
+     JOIN users ON users.id = students.user_id
      JOIN classes ON classes.id = :classId
      JOIN courses ON courses.id = classes.course_id
      WHERE students.id = :studentId`,
@@ -117,23 +116,90 @@ async function maybeNotifyThreeAbsences(studentId: string, classId: string) {
   );
   if (!student) return;
 
-  const streakKey = latest.map((record) => record.id).join(":");
-  const existing = await Notification.findOne({
-    userId: student.userId,
-    type: "attendance-warning",
-    "metadata.classId": classId,
-    "metadata.streakKey": streakKey
-  });
-  if (existing) return;
+  const latestThree = latest.slice(0, 3);
+  if (latestThree.length === 3 && latestThree.every((record) => record.status === "absent")) {
+    const streakKey = latestThree.map((record) => record.id).join(":");
+    const existing = await Notification.findOne({
+      userId: student.userId,
+      type: "attendance-warning",
+      "metadata.classId": classId
+    });
+    if (!existing) {
+      const notification = await Notification.create({
+        userId: student.userId,
+        title: "Attendance warning",
+        message: `You have been missing the last three hours in ${student.courseTitle}.`,
+        type: "attendance-warning",
+        metadata: { classId, streakKey }
+      });
+      getIo()?.to(`user:${student.userId}`).emit("notification:new", notification);
+    }
+  }
 
-  const notification = await Notification.create({
-    userId: student.userId,
-    title: "Attendance warning",
-    message: `You have been missing the last three hours in ${student.courseTitle}.`,
-    type: "attendance-warning",
-    metadata: { classId, streakKey }
-  });
-  getIo()?.to(`user:${student.userId}`).emit("notification:new", notification);
+  if (latest.length === 5 && latest.every((record) => record.status === "absent")) {
+    const streakKey = latest.map((record) => record.id).join(":");
+    const existing = await Notification.findOne({
+      role: "admin",
+      type: "attendance-escalation",
+      "metadata.classId": classId,
+      "metadata.studentId": studentId
+    });
+    if (!existing) {
+      const notification = await Notification.create({
+        role: "admin",
+        title: "Attendance escalation",
+        message: `${student.studentName} has missed the last five attendance hours in ${student.courseTitle}.`,
+        type: "attendance-escalation",
+        metadata: { classId, studentId, streakKey }
+      });
+      getIo()?.to("role:admin").emit("notification:new", notification);
+    }
+  }
+
+  const [summary] = await rows<{ total: number; attended: number }>(
+    `SELECT COUNT(*) AS total,
+            SUM(CASE WHEN status IN ('present', 'late', 'excused') THEN 1 ELSE 0 END) AS attended
+     FROM attendance
+     WHERE student_id = :studentId AND class_id = :classId`,
+    { studentId, classId }
+  );
+  const total = Number(summary?.total ?? 0);
+  const attended = Number(summary?.attended ?? 0);
+  const attendanceRate = total ? Math.round((attended / total) * 100) : 100;
+  if (total >= 3 && attendanceRate < 70) {
+    const existingStudentWarning = await Notification.findOne({
+      userId: student.userId,
+      type: "attendance-risk",
+      "metadata.classId": classId
+    });
+    if (!existingStudentWarning) {
+      const notification = await Notification.create({
+        userId: student.userId,
+        title: "Attendance risk",
+        message: `Your attendance in ${student.courseTitle} dropped below 70%. Current attendance is ${attendanceRate}%.`,
+        type: "attendance-risk",
+        metadata: { classId, attendanceRate }
+      });
+      getIo()?.to(`user:${student.userId}`).emit("notification:new", notification);
+    }
+
+    const existingAdminWarning = await Notification.findOne({
+      role: "admin",
+      type: "student-at-risk",
+      "metadata.classId": classId,
+      "metadata.studentId": studentId
+    });
+    if (!existingAdminWarning) {
+      const notification = await Notification.create({
+        role: "admin",
+        title: "Student at risk",
+        message: `${student.studentName} attendance in ${student.courseTitle} is ${attendanceRate}%.`,
+        type: "student-at-risk",
+        metadata: { classId, studentId, attendanceRate }
+      });
+      getIo()?.to("role:admin").emit("notification:new", notification);
+    }
+  }
 }
 
 async function getAttendanceHealth(user: Express.UserClaims) {
@@ -278,7 +344,14 @@ attendanceRoutes.post(
         notes: req.body.notes
       }
     );
-    await maybeNotifyThreeAbsences(req.body.studentId, req.body.classId);
+    await maybeRunAttendanceAutomations(req.body.studentId, req.body.classId);
+    await ActivityLog.create({
+      userId: req.user!.id,
+      action: "attendance_marked",
+      entity: "attendance",
+      entityId: req.body.classId,
+      metadata: { classId: req.body.classId, dayId: req.body.dayId, studentId: req.body.studentId, status: req.body.status }
+    });
     res.status(201).json({ id, ...req.body });
   })
 );
@@ -296,7 +369,14 @@ attendanceRoutes.put(
       { id: req.params.id, status: req.body.status, notes: req.body.notes }
     );
     const [updated] = await rows<{ student_id: string; class_id: string }>("SELECT * FROM attendance WHERE id = :id", { id: req.params.id });
-    if (updated) await maybeNotifyThreeAbsences(updated.student_id, updated.class_id);
+    if (updated) await maybeRunAttendanceAutomations(updated.student_id, updated.class_id);
+    await ActivityLog.create({
+      userId: req.user!.id,
+      action: "attendance_updated",
+      entity: "attendance",
+      entityId: String(req.params.id),
+      metadata: { status: req.body.status }
+    });
     res.json(updated);
   })
 );
@@ -347,8 +427,15 @@ attendanceRoutes.post(
       notificationChecks.add(record.studentId);
     }
     for (const studentId of notificationChecks) {
-      await maybeNotifyThreeAbsences(studentId, req.body.classId);
+      await maybeRunAttendanceAutomations(studentId, req.body.classId);
     }
+    await ActivityLog.create({
+      userId: req.user!.id,
+      action: "attendance_bulk_saved",
+      entity: "attendance",
+      entityId: req.body.classId,
+      metadata: { classId: req.body.classId, dayId: req.body.dayId, records: req.body.records.length }
+    });
     res.status(201).json({ saved: req.body.records.length });
   })
 );

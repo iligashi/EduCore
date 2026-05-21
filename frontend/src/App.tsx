@@ -14,6 +14,7 @@ import { NotificationsPage } from "./pages/NotificationsPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { SearchPage } from "./pages/SearchPage";
 import { StudentsPage } from "./pages/StudentsPage";
+import { SuccessCenterPage } from "./pages/SuccessCenterPage";
 
 export default function App() {
   return (
@@ -53,6 +54,14 @@ export default function App() {
             element={
               <RoleRoute roles={["admin", "instructor"]}>
                 <AttendancePage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="success-center"
+            element={
+              <RoleRoute roles={["admin", "instructor"]}>
+                <SuccessCenterPage />
               </RoleRoute>
             }
           />

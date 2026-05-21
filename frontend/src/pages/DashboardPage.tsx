@@ -1,9 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, ClipboardCheck, GraduationCap, Users } from "lucide-react";
+import { AlertTriangle, BookOpen, ClipboardCheck, GraduationCap, Users } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Badge } from "../components/ui/Badge";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { SectionHeader } from "../components/ui/SectionHeader";
 import { StatCard } from "../components/ui/StatCard";
+import { Table, Td, Th } from "../components/ui/Table";
 import { api } from "../services/api";
 
 interface Dashboard {
@@ -15,6 +17,13 @@ interface Dashboard {
   };
   attendance: { status: string; total: number }[];
   performance: { courseTitle: string; averageGrade: number }[];
+  riskStudents: {
+    studentId: string;
+    studentName: string;
+    attendanceRate: number;
+    averageGrade?: number | null;
+    missingSubmissions: number;
+  }[];
   recentActivity: { _id: string; action: string; entity: string; createdAt: string }[];
 }
 
@@ -71,6 +80,43 @@ export function DashboardPage() {
       </div>
       <Card className="mt-6">
         <CardHeader>
+          <div className="flex items-center gap-2">
+            <AlertTriangle size={18} className="text-amber-600" />
+            <CardTitle>Student Risk Detection</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <thead>
+              <tr>
+                <Th>Student</Th>
+                <Th>Attendance</Th>
+                <Th>Avg Grade</Th>
+                <Th>Missing Work</Th>
+                <Th>Risk</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {(data?.riskStudents ?? []).map((student) => (
+                <tr key={student.studentId}>
+                  <Td className="font-medium">{student.studentName}</Td>
+                  <Td>{student.attendanceRate}%</Td>
+                  <Td>{student.averageGrade ?? "No grades"}</Td>
+                  <Td>{student.missingSubmissions}</Td>
+                  <Td>
+                    <Badge tone={student.attendanceRate < 70 || Number(student.averageGrade ?? 100) < 60 ? "danger" : "warning"}>
+                      {student.attendanceRate < 70 ? "attendance" : student.missingSubmissions > 0 ? "missing work" : "grade"}
+                    </Badge>
+                  </Td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+          {(data?.riskStudents ?? []).length === 0 ? <p className="text-sm text-slate-500">No at-risk students detected.</p> : null}
+        </CardContent>
+      </Card>
+      <Card className="mt-6">
+        <CardHeader>
           <CardTitle>Recent Activity</CardTitle>
         </CardHeader>
         <CardContent>
@@ -89,4 +135,3 @@ export function DashboardPage() {
     </>
   );
 }
-

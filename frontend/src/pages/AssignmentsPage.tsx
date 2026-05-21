@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bell, CheckCircle, FileUp, Plus, Star } from "lucide-react";
+import { Bell, CalendarDays, CheckCircle, Clock, ExternalLink, FileUp, Plus, Star } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Badge } from "../components/ui/Badge";
@@ -16,6 +16,7 @@ import type { ApiList, Assignment, ClassDay, ClassRecord, Course } from "../type
 
 interface Submission {
   id: string;
+  assignmentId: string;
   assignmentTitle: string;
   studentName: string;
   courseTitle: string;
@@ -69,7 +70,207 @@ const assignmentSchema = z.object({
 
 export function AssignmentsPage() {
   const { user } = useAuth();
-  return user?.role === "admin" ? <AdminAssignmentHealth /> : <AssignmentWorkflow />;
+  if (user?.role === "admin") return <AdminAssignmentHealth />;
+  if (user?.role === "student") return <StudentAssignmentWorkspace />;
+  return <AssignmentWorkflow />;
+}
+
+function formatDateTime(value: string) {
+  return new Date(value).toLocaleString(undefined, { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+function StudentAssignmentWorkspace() {
+  const queryClient = useQueryClient();
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState("");
+  const [submissionFile, setSubmissionFile] = useState<File | null>(null);
+  const [filter, setFilter] = useState<"open" | "submitted" | "graded">("open");
+
+  const { data: assignments } = useQuery({
+    queryKey: ["assignments"],
+    queryFn: () => api.get<ApiList<Assignment>>("/assignments")
+  });
+  const { data: submissions } = useQuery({
+    queryKey: ["submissions"],
+    queryFn: () => api.get<{ data: Submission[] }>("/assignments/submissions")
+  });
+
+  const submissionByAssignmentId = useMemo(
+    () => new Map((submissions?.data ?? []).map((submission) => [submission.assignmentId, submission])),
+    [submissions?.data]
+  );
+  const assignmentRows = useMemo(
+    () =>
+      (assignments?.data ?? []).map((assignment) => {
+        const submission = submissionByAssignmentId.get(assignment.id);
+        const isGraded = submission?.grade !== null && submission?.grade !== undefined;
+        const isSubmitted = Boolean(submission);
+        const isOverdue = !isSubmitted && new Date(assignment.dueDate).getTime() < Date.now();
+        const status = isGraded ? "graded" : isSubmitted ? "submitted" : "open";
+        return { assignment, submission, isGraded, isSubmitted, isOverdue, status };
+      }),
+    [assignments?.data, submissionByAssignmentId]
+  );
+  const visibleRows = assignmentRows.filter((row) => row.status === filter);
+  const selectedRow =
+    assignmentRows.find((row) => row.assignment.id === selectedAssignmentId) ??
+    visibleRows[0] ??
+    assignmentRows[0];
+
+  const submitAssignment = useMutation({
+    mutationFn: async () => {
+      const form = new FormData();
+      form.append("assignmentId", selectedRow.assignment.id);
+      if (submissionFile) form.append("file", submissionFile);
+      return api.post("/assignments/submissions", form);
+    },
+    onSuccess: () => {
+      setSubmissionFile(null);
+      queryClient.invalidateQueries({ queryKey: ["submissions"] });
+    }
+  });
+
+  const openCount = assignmentRows.filter((row) => row.status === "open").length;
+  const submittedCount = assignmentRows.filter((row) => row.status === "submitted").length;
+  const gradedCount = assignmentRows.filter((row) => row.status === "graded").length;
+
+  return (
+    <>
+      <SectionHeader title="Work" description="Assignments, uploads, and grades." />
+
+      <div className="grid gap-3 md:grid-cols-3">
+        <button
+          type="button"
+          className={`rounded-lg border p-4 text-left shadow-soft ${filter === "open" ? "border-primary bg-white" : "border-border bg-white"}`}
+          onClick={() => setFilter("open")}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase text-slate-500">To Submit</p>
+            <Clock size={18} className="text-amber-700" />
+          </div>
+          <p className="mt-2 text-2xl font-semibold">{openCount}</p>
+        </button>
+        <button
+          type="button"
+          className={`rounded-lg border p-4 text-left shadow-soft ${filter === "submitted" ? "border-primary bg-white" : "border-border bg-white"}`}
+          onClick={() => setFilter("submitted")}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase text-slate-500">Waiting Grade</p>
+            <FileUp size={18} className="text-primary" />
+          </div>
+          <p className="mt-2 text-2xl font-semibold">{submittedCount}</p>
+        </button>
+        <button
+          type="button"
+          className={`rounded-lg border p-4 text-left shadow-soft ${filter === "graded" ? "border-primary bg-white" : "border-border bg-white"}`}
+          onClick={() => setFilter("graded")}
+        >
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase text-slate-500">Graded</p>
+            <CheckCircle size={18} className="text-emerald-700" />
+          </div>
+          <p className="mt-2 text-2xl font-semibold">{gradedCount}</p>
+        </button>
+      </div>
+
+      <div className="mt-6 grid gap-6 xl:grid-cols-[1fr_380px]">
+        <Card>
+          <CardHeader>
+            <CardTitle>{filter === "open" ? "To Submit" : filter === "submitted" ? "Waiting For Grade" : "Graded Work"}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3">
+              {visibleRows.map((row) => (
+                <button
+                  key={row.assignment.id}
+                  type="button"
+                  className={`rounded-md border p-4 text-left transition hover:border-primary ${
+                    selectedRow?.assignment.id === row.assignment.id ? "border-primary bg-teal-50" : "border-border bg-white"
+                  }`}
+                  onClick={() => setSelectedAssignmentId(row.assignment.id)}
+                >
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="font-medium">{row.assignment.title}</p>
+                        {row.isGraded ? <Badge tone="success">graded</Badge> : row.isSubmitted ? <Badge tone="info">submitted</Badge> : null}
+                        {row.isOverdue ? <Badge tone="danger">overdue</Badge> : null}
+                      </div>
+                      <p className="mt-1 text-sm text-slate-600">{row.assignment.courseTitle}</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-slate-500">
+                      <CalendarDays size={15} />
+                      {formatDateTime(row.assignment.dueDate)}
+                    </div>
+                  </div>
+                </button>
+              ))}
+              {visibleRows.length === 0 ? <p className="rounded-md border border-dashed border-border p-5 text-sm text-slate-500">Nothing here right now.</p> : null}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {selectedRow ? (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-lg font-semibold">{selectedRow.assignment.title}</p>
+                  <p className="mt-1 text-sm text-slate-600">{selectedRow.assignment.courseTitle}</p>
+                </div>
+
+                <div className="grid gap-3">
+                  <div className="rounded-md bg-muted p-3">
+                    <p className="text-xs font-semibold uppercase text-slate-500">Due</p>
+                    <p className="mt-1 text-sm font-medium">{formatDateTime(selectedRow.assignment.dueDate)}</p>
+                  </div>
+                  <div className="rounded-md bg-muted p-3">
+                    <p className="text-xs font-semibold uppercase text-slate-500">Points</p>
+                    <p className="mt-1 text-sm font-medium">{selectedRow.assignment.points}</p>
+                  </div>
+                </div>
+
+                {selectedRow.assignment.description ? <p className="text-sm leading-6 text-slate-700">{selectedRow.assignment.description}</p> : null}
+
+                {selectedRow.submission ? (
+                  <div className="rounded-md border border-border p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium">Submission</p>
+                      {selectedRow.isGraded ? <Badge tone="success">{selectedRow.submission.grade}</Badge> : <Badge tone="info">waiting</Badge>}
+                    </div>
+                    <a className="mt-2 inline-flex items-center gap-2 text-sm font-medium text-primary" href={selectedRow.submission.fileUrl} target="_blank" rel="noreferrer">
+                      <ExternalLink size={15} />
+                      Open uploaded file
+                    </a>
+                    {selectedRow.submission.feedback ? <p className="mt-3 text-sm leading-6 text-slate-600">{selectedRow.submission.feedback}</p> : null}
+                  </div>
+                ) : null}
+
+                {!selectedRow.isGraded ? (
+                  <div className="space-y-3 border-t border-border pt-4">
+                    <Input type="file" onChange={(event) => setSubmissionFile(event.target.files?.[0] ?? null)} />
+                    <Button
+                      className="w-full"
+                      disabled={!submissionFile || submitAssignment.isPending}
+                      onClick={() => submitAssignment.mutate()}
+                    >
+                      <FileUp size={16} />
+                      {selectedRow.isSubmitted ? "Replace submission" : "Upload submission"}
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">No assignment selected.</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </>
+  );
 }
 
 function AdminAssignmentHealth() {

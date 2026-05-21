@@ -12,6 +12,10 @@ import { idParamsSchema } from "../../utils/schemas.js";
 
 export const studentRoutes = Router();
 
+function sqlNullable<T>(value: T | undefined) {
+  return value ?? null;
+}
+
 const createStudentSchema = z.object({
   body: z.object({
     fullName: z.string().min(2).max(120),
@@ -267,9 +271,9 @@ studentRoutes.put(
          WHERE id = :id`,
         {
           id: req.params.id,
-          studentCode: req.body.studentCode,
-          department: req.body.department,
-          semester: req.body.semester
+          studentCode: sqlNullable(req.body.studentCode),
+          department: sqlNullable(req.body.department),
+          semester: sqlNullable(req.body.semester)
         }
       );
       await connection.execute(
@@ -281,9 +285,9 @@ studentRoutes.put(
          WHERE students.id = :id`,
         {
           id: req.params.id,
-          fullName: req.body.fullName,
-          email: req.body.email?.toLowerCase(),
-          status: req.body.status
+          fullName: sqlNullable(req.body.fullName),
+          email: sqlNullable(req.body.email?.toLowerCase()),
+          status: sqlNullable(req.body.status)
         }
       );
       if (Array.isArray(req.body.classIds)) {

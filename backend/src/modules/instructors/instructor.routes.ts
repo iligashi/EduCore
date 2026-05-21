@@ -12,6 +12,10 @@ import { idParamsSchema } from "../../utils/schemas.js";
 
 export const instructorRoutes = Router();
 
+function sqlNullable<T>(value: T | undefined) {
+  return value ?? null;
+}
+
 const createInstructorSchema = z.object({
   body: z.object({
     fullName: z.string().min(2).max(120),
@@ -172,7 +176,7 @@ instructorRoutes.put(
     await withTransaction(async (connection) => {
       await connection.execute(
         `UPDATE instructors SET specialization = COALESCE(:specialization, specialization) WHERE id = :id`,
-        { id: req.params.id, specialization: req.body.specialization }
+        { id: req.params.id, specialization: sqlNullable(req.body.specialization) }
       );
       await connection.execute(
         `UPDATE users
@@ -183,9 +187,9 @@ instructorRoutes.put(
          WHERE instructors.id = :id`,
         {
           id: req.params.id,
-          fullName: req.body.fullName,
-          email: req.body.email?.toLowerCase(),
-          status: req.body.status
+          fullName: sqlNullable(req.body.fullName),
+          email: sqlNullable(req.body.email?.toLowerCase()),
+          status: sqlNullable(req.body.status)
         }
       );
     });

@@ -1,8 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { v4 as uuid } from "uuid";
-import { ClassDay } from "../../database/mongo.models.js";
-import { Notification } from "../../database/mongo.models.js";
+import { ActivityLog, ClassDay, Notification } from "../../database/mongo.models.js";
 import { execute, rows } from "../../database/mysql.js";
 import { authorize } from "../../middleware/authorize.middleware.js";
 import { upload } from "../../middleware/upload.middleware.js";
@@ -305,9 +304,24 @@ assignmentRoutes.post(
       role: "student",
       title: "New assignment",
       message: `${req.body.title} is now available.`,
-      type: "assignment"
+      type: "assignment",
+      metadata: {
+        assignmentId: id,
+        courseId,
+        classId: req.body.classId ?? null,
+        dayId: req.body.dayId ?? null,
+        dueDate: req.body.dueDate
+      }
     });
     getIo()?.to("role:student").emit("notification:new", notification);
+
+    await ActivityLog.create({
+      userId: req.user!.id,
+      action: "assignment_created",
+      entity: "assignment",
+      entityId: id,
+      metadata: { title: req.body.title, courseId, classId: req.body.classId ?? null, dueDate: req.body.dueDate }
+    });
 
     const [assignment] = await rows("SELECT * FROM assignments WHERE id = :id", { id });
     res.status(201).json(assignment);
@@ -426,19 +440,38 @@ assignmentRoutes.post(
       }
     );
 
-    const [assignment] = await rows<{ instructorUserId: string; title: string }>(
-      `SELECT instructors.user_id AS instructorUserId, assignments.title
+    const [assignment] = await rows<{ instructorUserId: string; title: string; dueDate: string; studentName: string }>(
+      `SELECT instructors.user_id AS instructorUserId, assignments.title, assignments.due_date AS dueDate,
+              users.full_name AS studentName
        FROM assignments
        JOIN courses ON courses.id = assignments.course_id
        JOIN instructors ON instructors.id = courses.instructor_id
+       JOIN students ON students.id = :studentId
+       JOIN users ON users.id = students.user_id
        WHERE assignments.id = :assignmentId`,
-      { assignmentId: parsed.assignmentId }
+      { assignmentId: parsed.assignmentId, studentId }
     );
     if (assignment) {
+      const submittedLate = new Date() > new Date(assignment.dueDate);
+      const notification = await Notification.create({
+        userId: assignment.instructorUserId,
+        title: "New submission",
+        message: `${assignment.studentName} submitted ${assignment.title}${submittedLate ? " after the deadline" : ""}.`,
+        type: "submission",
+        metadata: { assignmentId: parsed.assignmentId, studentId, submittedLate }
+      });
+      getIo()?.to(`user:${assignment.instructorUserId}`).emit("notification:new", notification);
       getIo()?.to(`user:${assignment.instructorUserId}`).emit("submission:new", {
         assignmentId: parsed.assignmentId,
         title: assignment.title,
         studentId
+      });
+      await ActivityLog.create({
+        userId: req.user!.id,
+        action: submittedLate ? "late_submission_uploaded" : "submission_uploaded",
+        entity: "submission",
+        entityId: id,
+        metadata: { assignmentId: parsed.assignmentId, studentId, submittedLate }
       });
     }
 
@@ -474,30 +507,66 @@ assignmentRoutes.put(
       }
     }
 
-    await execute(
-      `UPDATE submissions
-       SET grade = :grade, feedback = :feedback, graded_at = CURRENT_TIMESTAMP
-       WHERE id = :id`,
-      { id: req.params.id, grade: req.body.grade, feedback: req.body.feedback }
-    );
-
-    const [submission] = await rows<{ studentUserId: string; assignmentTitle: string }>(
-      `SELECT students.user_id AS studentUserId, assignments.title AS assignmentTitle
+    const [submissionForGrade] = await rows<{
+      assignmentId: string;
+      studentId: string;
+      studentUserId: string;
+      assignmentTitle: string;
+      dueDate: string;
+      submittedAt: string;
+    }>(
+      `SELECT submissions.assignment_id AS assignmentId, submissions.student_id AS studentId,
+              students.user_id AS studentUserId, assignments.title AS assignmentTitle,
+              assignments.due_date AS dueDate, submissions.submitted_at AS submittedAt
        FROM submissions
        JOIN students ON students.id = submissions.student_id
        JOIN assignments ON assignments.id = submissions.assignment_id
        WHERE submissions.id = :id`,
       { id: req.params.id }
     );
-    if (submission) {
-      const notification = await Notification.create({
-        userId: submission.studentUserId,
-        title: "Grade updated",
-        message: `${submission.assignmentTitle} has been graded.`,
-        type: "grade"
-      });
-      getIo()?.to(`user:${submission.studentUserId}`).emit("notification:new", notification);
-    }
+    if (!submissionForGrade) throw new HttpError(404, "Submission not found");
+
+    const submittedLate = new Date(submissionForGrade.submittedAt) > new Date(submissionForGrade.dueDate);
+    const finalGrade = submittedLate ? Math.max(0, Math.round(Number(req.body.grade) * 0.9 * 100) / 100) : Number(req.body.grade);
+    const feedback = submittedLate
+      ? `${req.body.feedback ? `${req.body.feedback}\n\n` : ""}Automatic late penalty applied: 10% deducted.`
+      : req.body.feedback;
+
+    await execute(
+      `UPDATE submissions
+       SET grade = :grade, feedback = :feedback, graded_at = CURRENT_TIMESTAMP
+       WHERE id = :id`,
+      { id: req.params.id, grade: finalGrade, feedback }
+    );
+
+    const notification = await Notification.create({
+      userId: submissionForGrade.studentUserId,
+      title: "Grade updated",
+      message: `${submissionForGrade.assignmentTitle} has been graded${submittedLate ? " with an automatic late penalty" : ""}.`,
+      type: "grade",
+      metadata: {
+        assignmentId: submissionForGrade.assignmentId,
+        submissionId: req.params.id,
+        submittedLate,
+        originalGrade: Number(req.body.grade),
+        finalGrade
+      }
+    });
+    getIo()?.to(`user:${submissionForGrade.studentUserId}`).emit("notification:new", notification);
+
+    await ActivityLog.create({
+      userId: req.user!.id,
+      action: submittedLate ? "submission_graded_with_late_penalty" : "submission_graded",
+      entity: "submission",
+      entityId: String(req.params.id),
+      metadata: {
+        assignmentId: submissionForGrade.assignmentId,
+        studentId: submissionForGrade.studentId,
+        submittedLate,
+        originalGrade: Number(req.body.grade),
+        finalGrade
+      }
+    });
 
     const [updated] = await rows("SELECT * FROM submissions WHERE id = :id", { id: req.params.id });
     res.json(updated);
