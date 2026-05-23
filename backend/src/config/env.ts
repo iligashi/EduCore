@@ -18,6 +18,12 @@ const envSchema = z.object({
   DB_PASSWORD: z.string().default(""),
   DB_NAME: z.string().default("educore"),
   MONGO_URI: z.string().default("mongodb://localhost:27017/educore"),
+  GROQ_API_KEY: z.string().optional().default(""),
+  GROQ_MODEL: z.string().optional().default("llama-3.3-70b-versatile"),
+  GROQ_BASE_URL: z.string().url().optional().default("https://api.groq.com/openai/v1"),
+  OPENAI_API_KEY: z.string().optional().default(""),
+  OPENAI_MODEL: z.string().optional().default("gpt-5"),
+  OPENAI_BASE_URL: z.string().url().optional().default("https://api.openai.com/v1"),
   CLOUDINARY_CLOUD_NAME: z.string().optional().default(""),
   CLOUDINARY_API_KEY: z.string().optional().default(""),
   CLOUDINARY_API_SECRET: z.string().optional().default("")
@@ -29,4 +35,3 @@ export const env = envSchema.parse({
 });
 
 export const isProduction = env.NODE_ENV === "production";
-

@@ -15,6 +15,7 @@ import { authRoutes } from "./modules/auth/auth.routes.js";
 import { attendanceRoutes } from "./modules/attendance/attendance.routes.js";
 import { assignmentRoutes } from "./modules/assignments/assignment.routes.js";
 import { cmsRoutes } from "./modules/cms/cms.routes.js";
+import { copilotRoutes } from "./modules/copilot/copilot.routes.js";
 import { courseRoutes } from "./modules/courses/course.routes.js";
 import { importExportRoutes } from "./modules/imports/import-export.routes.js";
 import { instructorRoutes } from "./modules/instructors/instructor.routes.js";
@@ -65,6 +66,7 @@ app.use("/api/notifications", authenticate, notificationRoutes);
 app.use("/api/reports", authenticate, reportRoutes);
 app.use("/api/search", authenticate, searchRoutes);
 app.use("/api/cms", authenticate, cmsRoutes);
+app.use("/api/copilot", authenticate, copilotRoutes);
 app.use("/api/recommendations", authenticate, recommendationRoutes);
 app.use("/api", authenticate, importExportRoutes);
 

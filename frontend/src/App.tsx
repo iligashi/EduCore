@@ -6,6 +6,7 @@ import { AttendancePage } from "./pages/AttendancePage";
 import { CmsPage } from "./pages/CmsPage";
 import { ClassStudioPage } from "./pages/ClassStudioPage";
 import { ContentPage } from "./pages/ContentPage";
+import { CopilotPage } from "./pages/CopilotPage";
 import { CoursesPage } from "./pages/CoursesPage";
 import { HomePage } from "./pages/HomePage";
 import { InstructorsPage } from "./pages/InstructorsPage";
@@ -40,6 +41,7 @@ export default function App() {
             }
           />
           <Route path="courses" element={<CoursesPage />} />
+          <Route path="copilot" element={<CopilotPage />} />
           <Route
             path="class-studio"
             element={

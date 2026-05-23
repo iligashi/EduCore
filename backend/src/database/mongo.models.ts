@@ -99,6 +99,87 @@ export const ActivityLog = model(
   )
 );
 
+export const CopilotThread = model(
+  "CopilotThread",
+  new Schema(
+    {
+      userId: { type: String, required: true, index: true },
+      role: { type: String, enum: ["admin", "instructor", "student"], required: true, index: true },
+      title: { type: String, required: true },
+      mode: { type: String, default: "ask", index: true },
+      lastMessageAt: { type: Date, default: Date.now },
+      archivedAt: { type: Date, default: null }
+    },
+    commonOptions
+  )
+);
+
+export const CopilotMessage = model(
+  "CopilotMessage",
+  new Schema(
+    {
+      threadId: { type: Schema.Types.ObjectId, ref: "CopilotThread", required: true, index: true },
+      userId: { type: String, required: true, index: true },
+      role: { type: String, enum: ["user", "assistant"], required: true },
+      content: { type: String, required: true },
+      provider: { type: String, default: "educore" },
+      citations: { type: [Schema.Types.Mixed], default: [] },
+      actions: { type: [Schema.Types.Mixed], default: [] },
+      metadata: { type: Schema.Types.Mixed, default: {} }
+    },
+    commonOptions
+  )
+);
+
+CopilotMessage.schema.index({ threadId: 1, createdAt: 1 });
+
+export const CopilotDraft = model(
+  "CopilotDraft",
+  new Schema(
+    {
+      createdBy: { type: String, required: true, index: true },
+      approvedBy: { type: String, index: true },
+      type: {
+        type: String,
+        enum: ["student_message", "lesson", "assignment", "rubric", "feedback", "admin_intervention", "policy", "note"],
+        required: true,
+        index: true
+      },
+      title: { type: String, required: true },
+      content: { type: String, required: true },
+      status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending", index: true },
+      targetRole: { type: String, enum: ["admin", "instructor", "student"] },
+      targetUserId: { type: String },
+      targetEntity: { type: String },
+      targetEntityId: { type: String },
+      metadata: { type: Schema.Types.Mixed, default: {} },
+      approvedAt: { type: Date, default: null },
+      rejectedAt: { type: Date, default: null }
+    },
+    commonOptions
+  )
+);
+
+export const CopilotDocument = model(
+  "CopilotDocument",
+  new Schema(
+    {
+      uploadedBy: { type: String, required: true, index: true },
+      title: { type: String, required: true },
+      fileUrl: { type: String, required: true },
+      originalName: { type: String, required: true },
+      mimeType: { type: String, required: true },
+      size: { type: Number, default: 0 },
+      extractedText: { type: String, default: "" },
+      visibility: { type: String, enum: ["all", "role", "private"], default: "role", index: true },
+      targetRole: { type: String, enum: ["admin", "instructor", "student"], index: true },
+      status: { type: String, enum: ["ready", "metadata_only"], default: "ready", index: true },
+      metadata: { type: Schema.Types.Mixed, default: {} }
+    },
+    commonOptions
+  )
+);
+
 export const Announcement = model(
   "Announcement",
   new Schema(

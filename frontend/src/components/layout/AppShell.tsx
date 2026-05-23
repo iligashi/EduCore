@@ -1,6 +1,7 @@
 import {
   Bell,
   BookOpen,
+  Bot,
   CalendarDays,
   ClipboardCheck,
   FileBarChart,
@@ -25,6 +26,7 @@ import type { Role } from "../../types";
 const navItems: { to: string; label: string; icon: LucideIcon; roles: Role[] }[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "instructor"] },
   { to: "/", label: "Home", icon: Home, roles: ["student"] },
+  { to: "/copilot", label: "Copilot", icon: Bot, roles: ["admin", "instructor", "student"] },
   { to: "/students", label: "Students", icon: Users, roles: ["admin"] },
   { to: "/instructors", label: "Instructors", icon: GraduationCap, roles: ["admin"] },
   { to: "/courses", label: "Courses", icon: BookOpen, roles: ["admin", "instructor"] },
