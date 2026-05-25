@@ -112,6 +112,11 @@ export const CourseApplication = model(
       message: { type: String, default: "" },
       status: { type: String, enum: ["pending", "reviewed", "accepted", "rejected"], default: "pending", index: true },
       notes: { type: String, default: "" },
+      studentUserId: { type: String },
+      credentialsSentAt: { type: Date, default: null },
+      decisionEmailSentAt: { type: Date, default: null },
+      lastEmailStatus: { type: String, enum: ["sent", "preview", "failed"], default: null },
+      lastEmailError: { type: String, default: "" },
       reviewedBy: { type: String },
       reviewedAt: { type: Date, default: null }
     },

@@ -74,6 +74,11 @@ export interface CourseApplication {
   message?: string;
   status: "pending" | "reviewed" | "accepted" | "rejected";
   notes?: string;
+  studentUserId?: string;
+  credentialsSentAt?: string | null;
+  decisionEmailSentAt?: string | null;
+  lastEmailStatus?: "sent" | "preview" | "failed" | null;
+  lastEmailError?: string;
   reviewedBy?: string;
   reviewedAt?: string | null;
   createdAt: string;

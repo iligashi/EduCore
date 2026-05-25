@@ -17,6 +17,12 @@ const statusTone = {
   rejected: "danger"
 } as const;
 
+const emailTone = {
+  sent: "success",
+  preview: "warning",
+  failed: "danger"
+} as const;
+
 function submittedAt(value: string) {
   return new Date(value).toLocaleString(undefined, {
     month: "short",
@@ -30,6 +36,7 @@ function submittedAt(value: string) {
 export function ApplicationsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch] = useState("");
+  const [actionError, setActionError] = useState("");
   const queryClient = useQueryClient();
   const path = statusFilter ? `/course-applications?status=${statusFilter}` : "/course-applications";
 
@@ -51,9 +58,16 @@ export function ApplicationsPage() {
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: CourseApplication["status"] }) =>
       api.patch<CourseApplication>(`/course-applications/${id}`, { status }),
+    onMutate: () => {
+      setActionError("");
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["course-applications"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+    onError: (error) => {
+      setActionError(error instanceof Error ? error.message : "Application action failed");
+      queryClient.invalidateQueries({ queryKey: ["course-applications"] });
     }
   });
 
@@ -84,6 +98,7 @@ export function ApplicationsPage() {
           </div>
         </CardHeader>
         <CardContent>
+          {actionError ? <p className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-700">{actionError}</p> : null}
           <Table>
             <thead>
               <tr>
@@ -110,6 +125,12 @@ export function ApplicationsPage() {
                   <Td className="max-w-sm text-sm text-slate-600">{application.message || "No message added."}</Td>
                   <Td>
                     <Badge tone={statusTone[application.status]}>{application.status}</Badge>
+                    {application.lastEmailStatus ? (
+                      <div className="mt-2">
+                        <Badge tone={emailTone[application.lastEmailStatus]}>email {application.lastEmailStatus}</Badge>
+                      </div>
+                    ) : null}
+                    {application.lastEmailError ? <div className="mt-1 max-w-44 text-xs text-red-700">{application.lastEmailError}</div> : null}
                   </Td>
                   <Td>{submittedAt(application.createdAt)}</Td>
                   <Td>
@@ -127,21 +148,21 @@ export function ApplicationsPage() {
                       <Button
                         type="button"
                         size="sm"
-                        disabled={statusMutation.isPending}
+                        disabled={statusMutation.isPending || application.status === "accepted"}
                         onClick={() => statusMutation.mutate({ id: application._id, status: "accepted" })}
                       >
                         <CheckCircle2 size={14} />
-                        Accept
+                        Accept & email
                       </Button>
                       <Button
                         type="button"
                         variant="danger"
                         size="sm"
-                        disabled={statusMutation.isPending}
+                        disabled={statusMutation.isPending || application.status === "rejected"}
                         onClick={() => statusMutation.mutate({ id: application._id, status: "rejected" })}
                       >
                         <XCircle size={14} />
-                        Reject
+                        Reject & email
                       </Button>
                     </div>
                   </Td>
