@@ -1,5 +1,6 @@
 import {
   Bell,
+  Award,
   BookOpen,
   Bot,
   CalendarDays,
@@ -32,6 +33,8 @@ const navItems: { to: string; label: string; icon: LucideIcon; roles: Role[] }[]
   { to: "/portal/instructors", label: "Instructors", icon: GraduationCap, roles: ["admin"] },
   { to: "/portal/applications", label: "Applications", icon: FileText, roles: ["admin"] },
   { to: "/portal/courses", label: "Courses", icon: BookOpen, roles: ["admin", "instructor"] },
+  { to: "/portal/documents", label: "Documents", icon: FileText, roles: ["admin", "student"] },
+  { to: "/portal/gradebook", label: "Gradebook", icon: Award, roles: ["admin", "instructor", "student"] },
   { to: "/portal/content", label: "Lessons", icon: BookOpen, roles: ["student"] },
   { to: "/portal/class-studio", label: "Class Studio", icon: CalendarDays, roles: ["admin", "instructor"] },
   { to: "/portal/assignments", label: "Assignments", icon: ClipboardCheck, roles: ["admin", "instructor"] },

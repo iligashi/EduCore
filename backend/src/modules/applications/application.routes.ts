@@ -4,7 +4,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { v4 as uuid } from "uuid";
 import { env } from "../../config/env.js";
-import { CourseApplication, Notification } from "../../database/mongo.models.js";
+import { ActivityLog, CourseApplication, EmailLog, Notification } from "../../database/mongo.models.js";
 import { rows, withTransaction } from "../../database/mysql.js";
 import { authorize } from "../../middleware/authorize.middleware.js";
 import { validate } from "../../middleware/validate.middleware.js";
@@ -35,10 +35,35 @@ const publicApplicationSchema = z.object({
 const applicationStatusSchema = z.object({
   params: z.object({ id: z.string() }),
   body: z.object({
-    status: z.enum(["pending", "reviewed", "accepted", "rejected"]).optional(),
-    notes: z.string().max(1200).optional()
+    status: z.enum(["pending", "reviewed", "accepted", "rejected", "enrolled"]).optional(),
+    stage: z.enum(["new", "under_review", "interview", "accepted", "rejected", "enrolled"]).optional(),
+    notes: z.string().max(1200).optional(),
+    interviewAt: z.string().datetime().optional().or(z.literal(""))
   })
 });
+
+const applicationEnrollmentSchema = z.object({
+  params: z.object({ id: z.string() }),
+  body: z.object({
+    classId: z.string().uuid()
+  })
+});
+
+function legacyStage(status?: string) {
+  if (status === "reviewed") return "under_review";
+  if (status === "accepted") return "accepted";
+  if (status === "rejected") return "rejected";
+  if (status === "enrolled") return "enrolled";
+  return "new";
+}
+
+function statusForStage(stage: string) {
+  if (stage === "under_review" || stage === "interview") return "reviewed";
+  if (stage === "accepted") return "accepted";
+  if (stage === "rejected") return "rejected";
+  if (stage === "enrolled") return "enrolled";
+  return "pending";
+}
 
 function temporaryPassword() {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%";
@@ -126,7 +151,7 @@ async function createOrResetStudentLogin(application: {
     }
   });
 
-  return { userId, email, password, studentCode: studentInsert?.studentCode };
+  return { userId, email, password, studentCode: studentInsert?.studentCode, studentId: student?.id ?? studentInsert!.id };
 }
 
 async function sendAcceptedEmail(application: { fullName: string; email: string; courseTitle: string }, password: string) {
@@ -200,6 +225,49 @@ function emailUpdate(result: MailResult) {
   };
 }
 
+async function logEmail(input: {
+  to: string;
+  subject: string;
+  category: string;
+  result: MailResult;
+  applicationId: string;
+  sentBy?: string;
+  metadata?: Record<string, unknown>;
+}) {
+  await EmailLog.create({
+    to: input.to,
+    subject: input.subject,
+    category: input.category,
+    status: input.result.status,
+    providerMessageId: input.result.messageId,
+    relatedEntity: "course_application",
+    relatedEntityId: input.applicationId,
+    sentBy: input.sentBy,
+    metadata: input.metadata ?? {}
+  });
+}
+
+async function getClassEnrollmentTarget(classId: string) {
+  const [classRecord] = await rows<{
+    classId: string;
+    courseId: string;
+    courseTitle: string;
+    room: string;
+    instructorUserId: string;
+  }>(
+    `SELECT classes.id AS classId, classes.course_id AS courseId, courses.title AS courseTitle,
+            classes.room, instructors.user_id AS instructorUserId
+     FROM classes
+     JOIN courses ON courses.id = classes.course_id
+     JOIN instructors ON instructors.id = courses.instructor_id
+     WHERE classes.id = :classId`,
+    { classId }
+  );
+
+  if (!classRecord) throw new HttpError(404, "Class not found");
+  return classRecord;
+}
+
 publicApplicationRoutes.get(
   "/courses",
   asyncHandler(async (_req, res) => {
@@ -247,7 +315,9 @@ publicApplicationRoutes.post(
       courseId: req.body.courseId,
       courseTitle,
       educationLevel: req.body.educationLevel,
-      message: req.body.message
+      message: req.body.message,
+      stage: "new",
+      status: "pending"
     });
 
     const notification = await Notification.create({
@@ -258,6 +328,12 @@ publicApplicationRoutes.post(
       metadata: { applicationId: application._id }
     });
     getIo()?.to("role:admin").emit("notification:new", notification);
+    await ActivityLog.create({
+      action: "course_application_submitted",
+      entity: "course_application",
+      entityId: String(application._id),
+      metadata: { courseId: req.body.courseId, courseTitle, email: application.email }
+    });
 
     res.status(201).json(application);
   })
@@ -267,10 +343,27 @@ applicationRoutes.get(
   "/",
   authorize("admin"),
   asyncHandler(async (req, res) => {
+    const stage = String(req.query.stage ?? "");
     const status = String(req.query.status ?? "");
-    const query = status ? { status } : {};
-    const data = await CourseApplication.find(query).sort({ createdAt: -1 }).limit(200);
+    const query = stage ? { stage } : status ? { status } : {};
+    const data = (await CourseApplication.find(query).sort({ createdAt: -1 }).limit(200).lean()).map((application) => ({
+      ...application,
+      stage: application.stage ?? legacyStage(application.status)
+    }));
     res.json({ data });
+  })
+);
+
+applicationRoutes.get(
+  "/:id/timeline",
+  authorize("admin"),
+  validate(z.object({ params: z.object({ id: z.string() }) })),
+  asyncHandler(async (req, res) => {
+    const [emails, audit] = await Promise.all([
+      EmailLog.find({ relatedEntity: "course_application", relatedEntityId: req.params.id }).sort({ createdAt: -1 }).lean(),
+      ActivityLog.find({ entity: "course_application", entityId: req.params.id }).sort({ createdAt: -1 }).limit(50).lean()
+    ]);
+    res.json({ emails, audit });
   })
 );
 
@@ -284,27 +377,53 @@ applicationRoutes.patch(
       throw new HttpError(404, "Application not found");
     }
 
+    const currentStage = String(application.stage ?? legacyStage(String(application.status)));
+    const requestedStage = req.body.stage ?? (req.body.status ? legacyStage(req.body.status) : undefined);
     const update: Record<string, unknown> = {};
-    if (req.body.status) update.status = req.body.status;
+    if (requestedStage) {
+      update.stage = requestedStage;
+      update.status = statusForStage(requestedStage);
+    } else if (req.body.status) {
+      update.status = req.body.status;
+    }
     if (typeof req.body.notes === "string") update.notes = req.body.notes;
-    if (req.body.status && req.body.status !== "pending") {
+    if (typeof req.body.interviewAt === "string") update.interviewAt = req.body.interviewAt ? new Date(req.body.interviewAt) : null;
+    if (requestedStage && requestedStage !== "new") {
       update.reviewedBy = req.user!.id;
       update.reviewedAt = new Date();
     }
 
     try {
-      if (req.body.status === "accepted") {
+      if (requestedStage === "accepted" && !application.credentialsSentAt) {
         const account = await createOrResetStudentLogin(application);
         const mail = await sendAcceptedEmail(application, account.password);
         Object.assign(update, emailUpdate(mail), {
           studentUserId: account.userId,
+          studentId: account.studentId,
           credentialsSentAt: new Date()
+        });
+        await logEmail({
+          to: application.email,
+          subject: `EduCore application accepted: ${application.courseTitle}`,
+          category: "application_accepted",
+          result: mail,
+          applicationId: String(req.params.id),
+          sentBy: req.user!.id,
+          metadata: { studentUserId: account.userId, studentId: account.studentId }
         });
       }
 
-      if (req.body.status === "rejected") {
+      if (requestedStage === "rejected" && currentStage !== "rejected") {
         const mail = await sendRejectedEmail(application);
         Object.assign(update, emailUpdate(mail));
+        await logEmail({
+          to: application.email,
+          subject: `EduCore application update: ${application.courseTitle}`,
+          category: "application_rejected",
+          result: mail,
+          applicationId: String(req.params.id),
+          sentBy: req.user!.id
+        });
       }
     } catch (error) {
       application.set({
@@ -317,6 +436,73 @@ applicationRoutes.patch(
 
     application.set(update);
     await application.save();
+    await ActivityLog.create({
+      userId: req.user!.id,
+      action: requestedStage ? "course_application_stage_changed" : "course_application_updated",
+      entity: "course_application",
+      entityId: req.params.id,
+      metadata: { from: currentStage, to: requestedStage ?? currentStage, notesChanged: typeof req.body.notes === "string" }
+    });
+    res.json(application);
+  })
+);
+
+applicationRoutes.post(
+  "/:id/enroll",
+  authorize("admin"),
+  validate(applicationEnrollmentSchema),
+  asyncHandler(async (req, res) => {
+    const application = await CourseApplication.findById(req.params.id);
+    if (!application) throw new HttpError(404, "Application not found");
+
+    const stage = String(application.stage ?? legacyStage(String(application.status)));
+    if (stage !== "accepted" && stage !== "enrolled") {
+      throw new HttpError(422, "Only accepted applications can be enrolled");
+    }
+
+    const studentId = String(application.studentId ?? "");
+    const studentUserId = String(application.studentUserId ?? "");
+    if (!studentId || !studentUserId) {
+      throw new HttpError(422, "Accept the application before enrolling the student");
+    }
+
+    const classRecord = await getClassEnrollmentTarget(req.body.classId);
+    await withTransaction(async (connection) => {
+      await connection.execute(
+        `INSERT INTO enrollments (id, student_id, class_id, status)
+         VALUES (:id, :studentId, :classId, 'active')
+         ON DUPLICATE KEY UPDATE status = 'active'`,
+        { id: uuid(), studentId, classId: req.body.classId }
+      );
+    });
+
+    application.set({
+      stage: "enrolled",
+      status: "enrolled",
+      enrolledClassId: req.body.classId,
+      enrolledAt: new Date(),
+      reviewedBy: req.user!.id,
+      reviewedAt: new Date()
+    });
+    await application.save();
+
+    const notification = await Notification.create({
+      userId: studentUserId,
+      title: "Course enrollment confirmed",
+      message: `You have been enrolled in ${classRecord.courseTitle} / ${classRecord.room}.`,
+      type: "enrollment",
+      metadata: { classId: req.body.classId, courseId: classRecord.courseId, applicationId: req.params.id }
+    });
+    getIo()?.to(`user:${studentUserId}`).emit("notification:new", notification);
+
+    await ActivityLog.create({
+      userId: req.user!.id,
+      action: "course_application_enrolled",
+      entity: "course_application",
+      entityId: req.params.id,
+      metadata: { studentId, classId: req.body.classId, courseId: classRecord.courseId }
+    });
+
     res.json(application);
   })
 );

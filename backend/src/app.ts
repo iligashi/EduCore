@@ -18,6 +18,8 @@ import { applicationRoutes, publicApplicationRoutes } from "./modules/applicatio
 import { cmsRoutes } from "./modules/cms/cms.routes.js";
 import { copilotRoutes } from "./modules/copilot/copilot.routes.js";
 import { courseRoutes } from "./modules/courses/course.routes.js";
+import { documentRoutes } from "./modules/documents/document.routes.js";
+import { gradebookRoutes } from "./modules/gradebook/gradebook.routes.js";
 import { importExportRoutes } from "./modules/imports/import-export.routes.js";
 import { instructorRoutes } from "./modules/instructors/instructor.routes.js";
 import { notificationRoutes } from "./modules/notifications/notification.routes.js";
@@ -63,6 +65,8 @@ app.use("/api/students", authenticate, studentRoutes);
 app.use("/api/instructors", authenticate, instructorRoutes);
 app.use("/api/course-applications", authenticate, applicationRoutes);
 app.use("/api/courses", authenticate, courseRoutes);
+app.use("/api/documents", authenticate, documentRoutes);
+app.use("/api/gradebook", authenticate, gradebookRoutes);
 app.use("/api/assignments", authenticate, assignmentRoutes);
 app.use("/api/attendance", authenticate, attendanceRoutes);
 app.use("/api/notifications", authenticate, notificationRoutes);

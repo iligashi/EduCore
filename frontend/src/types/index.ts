@@ -72,17 +72,97 @@ export interface CourseApplication {
   courseTitle: string;
   educationLevel?: string;
   message?: string;
-  status: "pending" | "reviewed" | "accepted" | "rejected";
+  status: "pending" | "reviewed" | "accepted" | "rejected" | "enrolled";
+  stage: "new" | "under_review" | "interview" | "accepted" | "rejected" | "enrolled";
+  interviewAt?: string | null;
   notes?: string;
   studentUserId?: string;
+  studentId?: string;
   credentialsSentAt?: string | null;
   decisionEmailSentAt?: string | null;
   lastEmailStatus?: "sent" | "preview" | "failed" | null;
   lastEmailError?: string;
+  enrolledClassId?: string;
+  enrolledAt?: string | null;
   reviewedBy?: string;
   reviewedAt?: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface EmailLog {
+  _id: string;
+  to: string;
+  subject: string;
+  category: string;
+  status: "sent" | "preview" | "failed";
+  providerMessageId?: string;
+  error?: string;
+  relatedEntity?: string;
+  relatedEntityId?: string;
+  sentBy?: string;
+  createdAt: string;
+}
+
+export interface AuditLog {
+  _id: string;
+  userId?: string;
+  action: string;
+  entity: string;
+  entityId?: string;
+  metadata?: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface StudentDocument {
+  _id: string;
+  studentId: string;
+  userId: string;
+  fullName: string;
+  title: string;
+  type: string;
+  fileUrl: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  status: "pending" | "approved" | "rejected";
+  notes?: string;
+  reviewedBy?: string;
+  reviewedAt?: string | null;
+  createdAt: string;
+}
+
+export interface GradebookRow {
+  studentId: string;
+  studentUserId: string;
+  studentName: string;
+  email: string;
+  classId: string;
+  courseId: string;
+  courseTitle: string;
+  room: string;
+  totalAssignments: number;
+  submittedAssignments: number;
+  gradedSubmissions: number;
+  averageGrade: number | null;
+  certificateEligible: boolean;
+}
+
+export interface Certificate {
+  _id: string;
+  studentId: string;
+  studentUserId: string;
+  studentName: string;
+  classId: string;
+  courseId: string;
+  courseTitle: string;
+  classRoom: string;
+  finalGrade: number | null;
+  verificationCode: string;
+  status: "issued" | "revoked";
+  issuedBy: string;
+  issuedAt: string;
+  revokedAt?: string | null;
 }
 
 export interface ClassRecord {

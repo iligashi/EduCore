@@ -110,15 +110,90 @@ export const CourseApplication = model(
       courseTitle: { type: String, required: true },
       educationLevel: { type: String, default: "" },
       message: { type: String, default: "" },
-      status: { type: String, enum: ["pending", "reviewed", "accepted", "rejected"], default: "pending", index: true },
+      status: { type: String, enum: ["pending", "reviewed", "accepted", "rejected", "enrolled"], default: "pending", index: true },
+      stage: {
+        type: String,
+        enum: ["new", "under_review", "interview", "accepted", "rejected", "enrolled"],
+        default: "new",
+        index: true
+      },
+      interviewAt: { type: Date, default: null },
       notes: { type: String, default: "" },
       studentUserId: { type: String },
+      studentId: { type: String },
       credentialsSentAt: { type: Date, default: null },
       decisionEmailSentAt: { type: Date, default: null },
       lastEmailStatus: { type: String, enum: ["sent", "preview", "failed"], default: null },
       lastEmailError: { type: String, default: "" },
+      enrolledClassId: { type: String },
+      enrolledAt: { type: Date, default: null },
       reviewedBy: { type: String },
       reviewedAt: { type: Date, default: null }
+    },
+    commonOptions
+  )
+);
+
+export const EmailLog = model(
+  "EmailLog",
+  new Schema(
+    {
+      to: { type: String, required: true, index: true },
+      subject: { type: String, required: true },
+      category: { type: String, required: true, index: true },
+      status: { type: String, enum: ["sent", "preview", "failed"], required: true, index: true },
+      providerMessageId: { type: String },
+      error: { type: String, default: "" },
+      relatedEntity: { type: String, index: true },
+      relatedEntityId: { type: String, index: true },
+      sentBy: { type: String, index: true },
+      metadata: { type: Schema.Types.Mixed, default: {} }
+    },
+    commonOptions
+  )
+);
+
+export const StudentDocument = model(
+  "StudentDocument",
+  new Schema(
+    {
+      studentId: { type: String, required: true, index: true },
+      userId: { type: String, required: true, index: true },
+      fullName: { type: String, required: true },
+      title: { type: String, required: true },
+      type: { type: String, required: true, index: true },
+      fileUrl: { type: String, required: true },
+      originalName: { type: String, required: true },
+      mimeType: { type: String, required: true },
+      size: { type: Number, default: 0 },
+      status: { type: String, enum: ["pending", "approved", "rejected"], default: "pending", index: true },
+      notes: { type: String, default: "" },
+      reviewedBy: { type: String },
+      reviewedAt: { type: Date, default: null }
+    },
+    commonOptions
+  )
+);
+
+export const Certificate = model(
+  "Certificate",
+  new Schema(
+    {
+      studentId: { type: String, required: true, index: true },
+      studentUserId: { type: String, required: true, index: true },
+      studentName: { type: String, required: true },
+      classId: { type: String, required: true, index: true },
+      courseId: { type: String, required: true, index: true },
+      courseTitle: { type: String, required: true },
+      classRoom: { type: String, default: "" },
+      finalGrade: { type: Number, default: null },
+      verificationCode: { type: String, required: true, unique: true, index: true },
+      status: { type: String, enum: ["issued", "revoked"], default: "issued", index: true },
+      issuedBy: { type: String, required: true },
+      issuedAt: { type: Date, default: Date.now },
+      revokedBy: { type: String },
+      revokedAt: { type: Date, default: null },
+      metadata: { type: Schema.Types.Mixed, default: {} }
     },
     commonOptions
   )

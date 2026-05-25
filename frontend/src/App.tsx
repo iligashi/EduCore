@@ -9,6 +9,8 @@ import { ClassStudioPage } from "./pages/ClassStudioPage";
 import { ContentPage } from "./pages/ContentPage";
 import { CopilotPage } from "./pages/CopilotPage";
 import { CoursesPage } from "./pages/CoursesPage";
+import { DocumentsPage } from "./pages/DocumentsPage";
+import { GradebookPage } from "./pages/GradebookPage";
 import { HomePage } from "./pages/HomePage";
 import { InstructorsPage } from "./pages/InstructorsPage";
 import { LoginPage } from "./pages/LoginPage";
@@ -52,6 +54,22 @@ export default function App() {
             }
           />
           <Route path="courses" element={<CoursesPage />} />
+          <Route
+            path="documents"
+            element={
+              <RoleRoute roles={["admin", "student"]}>
+                <DocumentsPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="gradebook"
+            element={
+              <RoleRoute roles={["admin", "instructor", "student"]}>
+                <GradebookPage />
+              </RoleRoute>
+            }
+          />
           <Route path="copilot" element={<CopilotPage />} />
           <Route
             path="class-studio"
