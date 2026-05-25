@@ -4,6 +4,7 @@ import {
   Bot,
   CalendarDays,
   ClipboardCheck,
+  FileText,
   FileBarChart,
   Gauge,
   GraduationCap,
@@ -24,23 +25,24 @@ import { Button } from "../ui/Button";
 import type { Role } from "../../types";
 
 const navItems: { to: string; label: string; icon: LucideIcon; roles: Role[] }[] = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "instructor"] },
-  { to: "/", label: "Home", icon: Home, roles: ["student"] },
-  { to: "/copilot", label: "Copilot", icon: Bot, roles: ["admin", "instructor", "student"] },
-  { to: "/students", label: "Students", icon: Users, roles: ["admin"] },
-  { to: "/instructors", label: "Instructors", icon: GraduationCap, roles: ["admin"] },
-  { to: "/courses", label: "Courses", icon: BookOpen, roles: ["admin", "instructor"] },
-  { to: "/content", label: "Lessons", icon: BookOpen, roles: ["student"] },
-  { to: "/class-studio", label: "Class Studio", icon: CalendarDays, roles: ["admin", "instructor"] },
-  { to: "/assignments", label: "Assignments", icon: ClipboardCheck, roles: ["admin", "instructor"] },
-  { to: "/assignments", label: "Work", icon: ClipboardCheck, roles: ["student"] },
-  { to: "/attendance", label: "Attendance", icon: Gauge, roles: ["admin", "instructor"] },
-  { to: "/success-center", label: "Success Center", icon: LifeBuoy, roles: ["admin", "instructor"] },
-  { to: "/reports", label: "Reports", icon: FileBarChart, roles: ["admin"] },
-  { to: "/cms", label: "CMS", icon: Megaphone, roles: ["admin"] },
-  { to: "/notifications", label: "Notifications", icon: Bell, roles: ["admin", "instructor"] },
-  { to: "/notifications", label: "Inbox", icon: Bell, roles: ["student"] },
-  { to: "/search", label: "Search", icon: Search, roles: ["admin", "instructor"] }
+  { to: "/portal", label: "Dashboard", icon: LayoutDashboard, roles: ["admin", "instructor"] },
+  { to: "/portal", label: "Home", icon: Home, roles: ["student"] },
+  { to: "/portal/copilot", label: "Copilot", icon: Bot, roles: ["admin", "instructor", "student"] },
+  { to: "/portal/students", label: "Students", icon: Users, roles: ["admin"] },
+  { to: "/portal/instructors", label: "Instructors", icon: GraduationCap, roles: ["admin"] },
+  { to: "/portal/applications", label: "Applications", icon: FileText, roles: ["admin"] },
+  { to: "/portal/courses", label: "Courses", icon: BookOpen, roles: ["admin", "instructor"] },
+  { to: "/portal/content", label: "Lessons", icon: BookOpen, roles: ["student"] },
+  { to: "/portal/class-studio", label: "Class Studio", icon: CalendarDays, roles: ["admin", "instructor"] },
+  { to: "/portal/assignments", label: "Assignments", icon: ClipboardCheck, roles: ["admin", "instructor"] },
+  { to: "/portal/assignments", label: "Work", icon: ClipboardCheck, roles: ["student"] },
+  { to: "/portal/attendance", label: "Attendance", icon: Gauge, roles: ["admin", "instructor"] },
+  { to: "/portal/success-center", label: "Success Center", icon: LifeBuoy, roles: ["admin", "instructor"] },
+  { to: "/portal/reports", label: "Reports", icon: FileBarChart, roles: ["admin"] },
+  { to: "/portal/cms", label: "CMS", icon: Megaphone, roles: ["admin"] },
+  { to: "/portal/notifications", label: "Notifications", icon: Bell, roles: ["admin", "instructor"] },
+  { to: "/portal/notifications", label: "Inbox", icon: Bell, roles: ["student"] },
+  { to: "/portal/search", label: "Search", icon: Search, roles: ["admin", "instructor"] }
 ];
 
 function navLabel(label: string, role: Role) {
@@ -91,11 +93,11 @@ export function AppShell() {
             <p className="text-xs capitalize text-slate-500">{user?.role === "student" ? "Student portal" : user?.role}</p>
           </div>
           <div className="flex items-center gap-2">
-            <NavLink to="/notifications" className="rounded-md p-2 text-slate-500 hover:bg-muted hover:text-slate-900" title="Notifications">
+            <NavLink to="/portal/notifications" className="rounded-md p-2 text-slate-500 hover:bg-muted hover:text-slate-900" title="Notifications">
               <Bell size={19} />
             </NavLink>
             {user?.role === "admin" ? (
-              <NavLink to="/cms" className="rounded-md p-2 text-slate-500 hover:bg-muted hover:text-slate-900" title="CMS">
+              <NavLink to="/portal/cms" className="rounded-md p-2 text-slate-500 hover:bg-muted hover:text-slate-900" title="CMS">
                 <Megaphone size={19} />
               </NavLink>
             ) : null}

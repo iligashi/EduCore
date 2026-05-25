@@ -64,7 +64,7 @@ export function StudentHomePage() {
         title="Home"
         description="A simple view of what is next."
         action={
-          <Link to="/content">
+          <Link to="/portal/content">
             <Button>
               <PlayCircle size={16} />
               Continue
@@ -125,7 +125,7 @@ export function StudentHomePage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-3">
               <CardTitle>Next Up</CardTitle>
-              <Link to="/assignments" className="text-sm font-medium text-primary">View work</Link>
+              <Link to="/portal/assignments" className="text-sm font-medium text-primary">View work</Link>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -138,7 +138,7 @@ export function StudentHomePage() {
                       </div>
                       <p className="mt-1 text-sm text-slate-600">{assignment.courseTitle}</p>
                     </div>
-                    <Link to="/assignments">
+                    <Link to="/portal/assignments">
                       <Button variant="outline" size="sm">
                         Submit
                       </Button>
@@ -157,7 +157,7 @@ export function StudentHomePage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between gap-3">
               <CardTitle>My Classes</CardTitle>
-              <Link to="/content" className="text-sm font-medium text-primary">Open lessons</Link>
+              <Link to="/portal/content" className="text-sm font-medium text-primary">Open lessons</Link>
             </CardHeader>
             <CardContent>
               <div className="grid gap-3 md:grid-cols-2">
@@ -197,7 +197,7 @@ export function StudentHomePage() {
                     <p className="mt-2 text-lg font-semibold">{nextLesson.title}</p>
                     <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{nextLesson.content}</p>
                   </div>
-                  <Link to="/content">
+                  <Link to="/portal/content">
                     <Button className="w-full">
                       <PlayCircle size={16} />
                       Open lesson

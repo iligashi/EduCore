@@ -14,6 +14,7 @@ import { authenticate } from "./middleware/auth.middleware.js";
 import { authRoutes } from "./modules/auth/auth.routes.js";
 import { attendanceRoutes } from "./modules/attendance/attendance.routes.js";
 import { assignmentRoutes } from "./modules/assignments/assignment.routes.js";
+import { applicationRoutes, publicApplicationRoutes } from "./modules/applications/application.routes.js";
 import { cmsRoutes } from "./modules/cms/cms.routes.js";
 import { copilotRoutes } from "./modules/copilot/copilot.routes.js";
 import { courseRoutes } from "./modules/courses/course.routes.js";
@@ -56,9 +57,11 @@ app.get("/health", (_req, res) => {
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use("/api/auth", authRoutes);
+app.use("/api/public", publicApplicationRoutes);
 app.use("/api/users", authenticate, userRoutes);
 app.use("/api/students", authenticate, studentRoutes);
 app.use("/api/instructors", authenticate, instructorRoutes);
+app.use("/api/course-applications", authenticate, applicationRoutes);
 app.use("/api/courses", authenticate, courseRoutes);
 app.use("/api/assignments", authenticate, assignmentRoutes);
 app.use("/api/attendance", authenticate, attendanceRoutes);

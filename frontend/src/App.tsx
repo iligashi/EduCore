@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from "react-router-dom";
 import { AppShell } from "./components/layout/AppShell";
 import { ProtectedRoute, RoleRoute } from "./features/auth/ProtectedRoute";
+import { ApplicationsPage } from "./pages/ApplicationsPage";
 import { AssignmentsPage } from "./pages/AssignmentsPage";
 import { AttendancePage } from "./pages/AttendancePage";
 import { CmsPage } from "./pages/CmsPage";
@@ -12,6 +13,7 @@ import { HomePage } from "./pages/HomePage";
 import { InstructorsPage } from "./pages/InstructorsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
+import { PublicHomePage } from "./pages/PublicHomePage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { SearchPage } from "./pages/SearchPage";
 import { StudentsPage } from "./pages/StudentsPage";
@@ -20,8 +22,9 @@ import { SuccessCenterPage } from "./pages/SuccessCenterPage";
 export default function App() {
   return (
     <Routes>
+      <Route index element={<PublicHomePage />} />
       <Route path="/login" element={<LoginPage />} />
-      <Route element={<ProtectedRoute />}>
+      <Route path="/portal" element={<ProtectedRoute />}>
         <Route element={<AppShell />}>
           <Route index element={<HomePage />} />
           <Route
@@ -37,6 +40,14 @@ export default function App() {
             element={
               <RoleRoute roles={["admin"]}>
                 <InstructorsPage />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="applications"
+            element={
+              <RoleRoute roles={["admin"]}>
+                <ApplicationsPage />
               </RoleRoute>
             }
           />

@@ -21,7 +21,7 @@ export function RoleRoute({ roles, children }: { roles: Role[]; children: ReactN
   const { user } = useAuth();
 
   if (!user || !roles.includes(user.role)) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/portal" replace />;
   }
 
   return <>{children}</>;

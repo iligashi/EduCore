@@ -99,6 +99,26 @@ export const ActivityLog = model(
   )
 );
 
+export const CourseApplication = model(
+  "CourseApplication",
+  new Schema(
+    {
+      fullName: { type: String, required: true },
+      email: { type: String, required: true, index: true },
+      phone: { type: String, default: "" },
+      courseId: { type: String, index: true },
+      courseTitle: { type: String, required: true },
+      educationLevel: { type: String, default: "" },
+      message: { type: String, default: "" },
+      status: { type: String, enum: ["pending", "reviewed", "accepted", "rejected"], default: "pending", index: true },
+      notes: { type: String, default: "" },
+      reviewedBy: { type: String },
+      reviewedAt: { type: Date, default: null }
+    },
+    commonOptions
+  )
+);
+
 export const CopilotThread = model(
   "CopilotThread",
   new Schema(

@@ -52,6 +52,34 @@ export interface Course {
   status: string;
 }
 
+export interface PublicCourse {
+  id: string;
+  title: string;
+  description: string;
+  instructorName?: string;
+  level: string;
+  status: string;
+  classCount: number;
+  nextStartAt?: string | null;
+}
+
+export interface CourseApplication {
+  _id: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  courseId?: string;
+  courseTitle: string;
+  educationLevel?: string;
+  message?: string;
+  status: "pending" | "reviewed" | "accepted" | "rejected";
+  notes?: string;
+  reviewedBy?: string;
+  reviewedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ClassRecord {
   id: string;
   courseId: string;

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { GraduationCap } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { useAuth } from "../features/auth/AuthProvider";
 import { Button } from "../components/ui/Button";
@@ -40,7 +40,7 @@ export function LoginPage() {
     setError("");
     try {
       await login(values.email, values.password);
-      navigate("/", { replace: true });
+      navigate("/portal", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     }
@@ -50,7 +50,7 @@ export function LoginPage() {
     setError("");
     try {
       await register(values);
-      navigate("/", { replace: true });
+      navigate("/portal", { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     }
@@ -68,6 +68,9 @@ export function LoginPage() {
               <p className="text-lg font-semibold">EduCore</p>
               <p className="text-sm text-slate-300">LMS & Digital Management System</p>
             </div>
+            <Link className="text-sm text-slate-300 hover:text-white" to="/">
+              Public homepage
+            </Link>
           </div>
           <div className="max-w-2xl">
             <h1 className="text-5xl font-semibold leading-tight tracking-normal">Operate courses, students, reports, and learning content from one platform.</h1>
