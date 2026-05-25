@@ -140,6 +140,7 @@ export interface GradebookRow {
   classId: string;
   courseId: string;
   courseTitle: string;
+  instructorName: string;
   room: string;
   totalAssignments: number;
   submittedAssignments: number;
@@ -157,12 +158,42 @@ export interface Certificate {
   courseId: string;
   courseTitle: string;
   classRoom: string;
+  instructorName?: string;
   finalGrade: number | null;
   verificationCode: string;
   status: "issued" | "revoked";
   issuedBy: string;
   issuedAt: string;
   revokedAt?: string | null;
+  templateSnapshot?: CertificateTemplate;
+}
+
+export interface CertificateElement {
+  id: string;
+  kind: "title" | "subtitle" | "student" | "course" | "date" | "code" | "grade" | "signature" | "custom";
+  label?: string;
+  text?: string;
+  x: number;
+  y: number;
+  width: number;
+  fontSize: number;
+  fontFamily: string;
+  color: string;
+  align: "left" | "center" | "right";
+  weight: "normal" | "semibold" | "bold";
+  italic: boolean;
+}
+
+export interface CertificateTemplate {
+  _id?: string;
+  name: string;
+  page: {
+    background: string;
+    borderColor: string;
+    accentColor: string;
+    paper: "landscape" | "portrait";
+  };
+  elements: CertificateElement[];
 }
 
 export interface ClassRecord {

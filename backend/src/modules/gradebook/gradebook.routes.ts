@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { Router } from "express";
 import { z } from "zod";
-import { ActivityLog, Certificate, Notification } from "../../database/mongo.models.js";
+import { ActivityLog, Certificate, CertificateTemplate, Notification } from "../../database/mongo.models.js";
 import { rows } from "../../database/mysql.js";
 import { authorize } from "../../middleware/authorize.middleware.js";
 import { validate } from "../../middleware/validate.middleware.js";
@@ -22,6 +22,54 @@ const certificateParamsSchema = z.object({
   params: z.object({ id: z.string() })
 });
 
+const templateElementSchema = z.object({
+  id: z.string().min(1).max(80),
+  kind: z.enum(["title", "subtitle", "student", "course", "date", "code", "grade", "signature", "custom"]),
+  label: z.string().max(80).optional(),
+  text: z.string().max(300).optional(),
+  x: z.coerce.number().min(0).max(100),
+  y: z.coerce.number().min(0).max(100),
+  width: z.coerce.number().min(5).max(100),
+  fontSize: z.coerce.number().min(10).max(72),
+  fontFamily: z.string().max(80).default("Georgia, serif"),
+  color: z.string().max(30).default("#111827"),
+  align: z.enum(["left", "center", "right"]).default("center"),
+  weight: z.enum(["normal", "semibold", "bold"]).default("normal"),
+  italic: z.boolean().default(false)
+});
+
+const certificateTemplateSchema = z.object({
+  body: z.object({
+    name: z.string().min(2).max(120),
+    page: z.object({
+      background: z.string().max(30).default("#fbfaf7"),
+      borderColor: z.string().max(30).default("#1f2937"),
+      accentColor: z.string().max(30).default("#0f766e"),
+      paper: z.enum(["landscape", "portrait"]).default("landscape")
+    }),
+    elements: z.array(templateElementSchema).min(1).max(20)
+  })
+});
+
+const defaultTemplate = {
+  name: "Classic Academic Certificate",
+  page: {
+    background: "#fbfaf7",
+    borderColor: "#1f2937",
+    accentColor: "#0f766e",
+    paper: "landscape"
+  },
+  elements: [
+    { id: "title", kind: "title", text: "Certificate of Completion", x: 12, y: 13, width: 76, fontSize: 40, fontFamily: "Georgia, serif", color: "#111827", align: "center", weight: "bold", italic: false },
+    { id: "subtitle", kind: "subtitle", text: "This certificate is proudly presented to", x: 18, y: 29, width: 64, fontSize: 16, fontFamily: "Inter, sans-serif", color: "#475569", align: "center", weight: "normal", italic: false },
+    { id: "student", kind: "student", x: 14, y: 37, width: 72, fontSize: 34, fontFamily: "Georgia, serif", color: "#0f172a", align: "center", weight: "bold", italic: false },
+    { id: "course", kind: "course", text: "for successfully completing {{courseTitle}}", x: 18, y: 51, width: 64, fontSize: 18, fontFamily: "Inter, sans-serif", color: "#334155", align: "center", weight: "normal", italic: false },
+    { id: "date", kind: "date", text: "Issued {{issuedAt}}", x: 12, y: 74, width: 30, fontSize: 14, fontFamily: "Inter, sans-serif", color: "#334155", align: "left", weight: "normal", italic: false },
+    { id: "code", kind: "code", text: "Verification {{verificationCode}}", x: 58, y: 74, width: 30, fontSize: 14, fontFamily: "Inter, sans-serif", color: "#334155", align: "right", weight: "normal", italic: false },
+    { id: "signature", kind: "signature", text: "EduCore Admissions", x: 34, y: 79, width: 32, fontSize: 16, fontFamily: "Georgia, serif", color: "#111827", align: "center", weight: "semibold", italic: true }
+  ]
+};
+
 function verificationCode() {
   return `EDU-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
 }
@@ -35,19 +83,26 @@ async function uniqueVerificationCode() {
   throw new HttpError(500, "Could not generate certificate code");
 }
 
+async function currentCertificateTemplate() {
+  const template = await CertificateTemplate.findOne({}).sort({ updatedAt: -1 }).lean();
+  return template ?? defaultTemplate;
+}
+
 async function assertClassAccessible(user: Express.UserClaims, classId: string) {
   const [classRecord] = await rows<{
     classId: string;
     courseId: string;
     courseTitle: string;
+    instructorName: string;
     room: string;
     instructorUserId: string;
   }>(
     `SELECT classes.id AS classId, classes.course_id AS courseId, courses.title AS courseTitle,
-            classes.room, instructors.user_id AS instructorUserId
+            instructor_users.full_name AS instructorName, classes.room, instructors.user_id AS instructorUserId
      FROM classes
      JOIN courses ON courses.id = classes.course_id
      JOIN instructors ON instructors.id = courses.instructor_id
+     JOIN users instructor_users ON instructor_users.id = instructors.user_id
      WHERE classes.id = :classId`,
     { classId }
   );
@@ -81,7 +136,7 @@ async function gradebookRows(user: Express.UserClaims, classId?: string) {
   }>(
     `SELECT students.id AS studentId, students.user_id AS studentUserId, users.full_name AS studentName,
             users.email, classes.id AS classId, classes.course_id AS courseId, courses.title AS courseTitle,
-            classes.room,
+            instructor_users.full_name AS instructorName, classes.room,
             COUNT(DISTINCT assignments.id) AS totalAssignments,
             COUNT(DISTINCT submissions.id) AS submittedAssignments,
             COUNT(DISTINCT CASE WHEN submissions.grade IS NOT NULL THEN submissions.id END) AS gradedSubmissions,
@@ -92,6 +147,7 @@ async function gradebookRows(user: Express.UserClaims, classId?: string) {
      JOIN classes ON classes.id = enrollments.class_id
      JOIN courses ON courses.id = classes.course_id
      JOIN instructors ON instructors.id = courses.instructor_id
+     JOIN users instructor_users ON instructor_users.id = instructors.user_id
      LEFT JOIN assignments ON assignments.course_id = courses.id
        AND (assignments.class_id IS NULL OR assignments.class_id = classes.id)
      LEFT JOIN submissions ON submissions.assignment_id = assignments.id AND submissions.student_id = students.id
@@ -100,7 +156,7 @@ async function gradebookRows(user: Express.UserClaims, classId?: string) {
        ${instructorFilter}
        ${studentFilter}
      GROUP BY students.id, students.user_id, users.full_name, users.email, classes.id,
-              classes.course_id, courses.title, classes.room
+              classes.course_id, courses.title, instructor_users.full_name, classes.room
      ORDER BY courses.title, classes.room, users.full_name`,
     { classId, userId: user.id }
   );
@@ -156,6 +212,40 @@ gradebookRoutes.get(
   })
 );
 
+gradebookRoutes.get(
+  "/certificate-template",
+  authorize("admin", "instructor", "student"),
+  asyncHandler(async (_req, res) => {
+    res.json(await currentCertificateTemplate());
+  })
+);
+
+gradebookRoutes.put(
+  "/certificate-template",
+  authorize("admin"),
+  validate(certificateTemplateSchema),
+  asyncHandler(async (req, res) => {
+    const template = await CertificateTemplate.findOneAndUpdate(
+      {},
+      {
+        name: req.body.name,
+        page: req.body.page,
+        elements: req.body.elements,
+        updatedBy: req.user!.id
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    await ActivityLog.create({
+      userId: req.user!.id,
+      action: "certificate_template_updated",
+      entity: "certificate_template",
+      entityId: String(template._id),
+      metadata: { name: req.body.name }
+    });
+    res.json(template);
+  })
+);
+
 gradebookRoutes.post(
   "/certificates",
   authorize("admin", "instructor"),
@@ -184,6 +274,7 @@ gradebookRoutes.post(
       return;
     }
 
+    const template = await currentCertificateTemplate();
     const certificate = await Certificate.create({
       studentId: row.studentId,
       studentUserId: row.studentUserId,
@@ -192,9 +283,11 @@ gradebookRoutes.post(
       courseId: classRecord.courseId,
       courseTitle: classRecord.courseTitle,
       classRoom: classRecord.room,
+      instructorName: classRecord.instructorName,
       finalGrade: averageGrade,
       verificationCode: await uniqueVerificationCode(),
       issuedBy: req.user!.id,
+      templateSnapshot: template,
       metadata: { totalAssignments, gradedSubmissions }
     });
 

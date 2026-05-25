@@ -186,6 +186,7 @@ export const Certificate = model(
       courseId: { type: String, required: true, index: true },
       courseTitle: { type: String, required: true },
       classRoom: { type: String, default: "" },
+      instructorName: { type: String, default: "" },
       finalGrade: { type: Number, default: null },
       verificationCode: { type: String, required: true, unique: true, index: true },
       status: { type: String, enum: ["issued", "revoked"], default: "issued", index: true },
@@ -193,7 +194,21 @@ export const Certificate = model(
       issuedAt: { type: Date, default: Date.now },
       revokedBy: { type: String },
       revokedAt: { type: Date, default: null },
+      templateSnapshot: { type: Schema.Types.Mixed, default: {} },
       metadata: { type: Schema.Types.Mixed, default: {} }
+    },
+    commonOptions
+  )
+);
+
+export const CertificateTemplate = model(
+  "CertificateTemplate",
+  new Schema(
+    {
+      name: { type: String, required: true, default: "Default Certificate" },
+      page: { type: Schema.Types.Mixed, default: {} },
+      elements: { type: [Schema.Types.Mixed], default: [] },
+      updatedBy: { type: String, required: true }
     },
     commonOptions
   )
