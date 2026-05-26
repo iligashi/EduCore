@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { v4 as uuid } from "uuid";
 import { connectMongo, disconnectMongo } from "./mongo.js";
-import { ActivityLog, Announcement, ClassBackup, ClassDay, CmsContent, Lesson, Notification, QuizQuestion } from "./mongo.models.js";
+import { ActivityLog, Announcement, ClassBackup, ClassDay, CmsContent, Lesson, Notification, QuizAttempt, QuizQuestion, QuizSession } from "./mongo.models.js";
 import { execute, pool } from "./mysql.js";
 
 const password = "Password123!";
@@ -134,7 +134,9 @@ async function seedMongo() {
     Notification.deleteMany({ title: /EduCore/i }),
     ActivityLog.deleteMany({ action: "seed" }),
     CmsContent.deleteMany({ slug: { $in: ["home", "student-handbook"] } }),
-    QuizQuestion.deleteMany({})
+    QuizQuestion.deleteMany({}),
+    QuizSession.deleteMany({}),
+    QuizAttempt.deleteMany({})
   ]);
 
   const lesson = await Lesson.create({

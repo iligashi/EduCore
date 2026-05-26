@@ -220,6 +220,73 @@ export interface ClassDay {
   published: boolean;
 }
 
+export interface QuizQuestion {
+  _id: string;
+  lessonId?: string;
+  classDayId?: string;
+  classId?: string;
+  courseId?: string;
+  prompt: string;
+  type: "single" | "multiple" | "text";
+  options: string[];
+  correctAnswers: string[];
+  explanation?: string;
+  points: number;
+  timeLimitSeconds?: number;
+}
+
+export interface QuizSessionQuestion {
+  id: string;
+  prompt: string;
+  options: string[];
+  points: number;
+  timeLimitSeconds: number;
+  correctAnswer?: string;
+  explanation?: string;
+}
+
+export interface QuizAttemptAnswer {
+  questionId: string;
+  prompt: string;
+  selectedOption: string;
+  correctOption: string;
+  isCorrect: boolean;
+  points: number;
+  explanation?: string;
+}
+
+export interface QuizAttempt {
+  _id: string;
+  sessionId: string;
+  studentId: string;
+  studentUserId: string;
+  studentName: string;
+  status: "accepted" | "submitted";
+  acceptedAt: string;
+  submittedAt?: string | null;
+  answers: QuizAttemptAnswer[];
+  score: number;
+  total: number;
+}
+
+export interface QuizSession {
+  _id: string;
+  classId: string;
+  courseId: string;
+  courseTitle: string;
+  room: string;
+  dayId: string;
+  dayNumber?: number | null;
+  dayTitle: string;
+  status: "open" | "closed";
+  startedAt: string;
+  timeLimitSeconds: number;
+  participantCount: number;
+  submittedCount?: number;
+  questions: QuizSessionQuestion[];
+  attempt?: QuizAttempt | null;
+}
+
 export interface ClassComment {
   _id: string;
   classId: string;

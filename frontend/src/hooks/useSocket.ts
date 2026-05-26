@@ -25,6 +25,20 @@ export function useSocket(enabled: boolean) {
       queryClient.invalidateQueries({ queryKey: ["submissions"] });
     });
 
+    socket.on("quiz:available", () => {
+      queryClient.invalidateQueries({ queryKey: ["student-quiz-sessions"] });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    });
+
+    socket.on("quiz:started", () => {
+      queryClient.invalidateQueries({ queryKey: ["quiz-sessions"] });
+    });
+
+    socket.on("quiz:submitted", () => {
+      queryClient.invalidateQueries({ queryKey: ["quiz-results"] });
+      queryClient.invalidateQueries({ queryKey: ["quiz-sessions"] });
+    });
+
     return () => {
       socket.disconnect();
     };

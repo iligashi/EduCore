@@ -328,12 +328,62 @@ export const QuizQuestion = model(
   new Schema(
     {
       lessonId: { type: Schema.Types.ObjectId, ref: "Lesson", index: true },
+      classDayId: { type: Schema.Types.ObjectId, ref: "ClassDay", index: true },
+      classId: { type: String, index: true },
+      courseId: { type: String, index: true },
       prompt: { type: String, required: true },
       type: { type: String, enum: ["single", "multiple", "text"], default: "single" },
       options: { type: [String], default: [] },
       correctAnswers: { type: [String], default: [] },
-      points: { type: Number, default: 1 }
+      explanation: { type: String, default: "" },
+      points: { type: Number, default: 1 },
+      timeLimitSeconds: { type: Number, default: 20 },
+      createdBy: { type: String }
     },
     commonOptions
   )
 );
+
+export const QuizSession = model(
+  "QuizSession",
+  new Schema(
+    {
+      classId: { type: String, required: true, index: true },
+      courseId: { type: String, required: true, index: true },
+      courseTitle: { type: String, required: true },
+      room: { type: String, default: "" },
+      dayId: { type: Schema.Types.ObjectId, ref: "ClassDay", required: true, index: true },
+      dayNumber: { type: Number, default: null },
+      dayTitle: { type: String, required: true },
+      status: { type: String, enum: ["open", "closed"], default: "open", index: true },
+      questions: { type: [Schema.Types.Mixed], default: [] },
+      participants: { type: [Schema.Types.Mixed], default: [] },
+      timeLimitSeconds: { type: Number, default: 20 },
+      startedBy: { type: String, required: true },
+      startedAt: { type: Date, default: Date.now },
+      endedAt: { type: Date, default: null }
+    },
+    commonOptions
+  )
+);
+
+export const QuizAttempt = model(
+  "QuizAttempt",
+  new Schema(
+    {
+      sessionId: { type: Schema.Types.ObjectId, ref: "QuizSession", required: true, index: true },
+      studentId: { type: String, required: true, index: true },
+      studentUserId: { type: String, required: true, index: true },
+      studentName: { type: String, required: true },
+      status: { type: String, enum: ["accepted", "submitted"], default: "accepted", index: true },
+      acceptedAt: { type: Date, default: Date.now },
+      submittedAt: { type: Date, default: null },
+      answers: { type: [Schema.Types.Mixed], default: [] },
+      score: { type: Number, default: 0 },
+      total: { type: Number, default: 0 }
+    },
+    commonOptions
+  )
+);
+
+QuizAttempt.schema.index({ sessionId: 1, studentUserId: 1 }, { unique: true });

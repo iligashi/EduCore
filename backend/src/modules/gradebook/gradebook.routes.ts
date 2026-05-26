@@ -64,11 +64,25 @@ const defaultTemplate = {
     { id: "subtitle", kind: "subtitle", text: "This certificate is proudly presented to", x: 18, y: 29, width: 64, fontSize: 16, fontFamily: "Inter, sans-serif", color: "#475569", align: "center", weight: "normal", italic: false },
     { id: "student", kind: "student", x: 14, y: 37, width: 72, fontSize: 34, fontFamily: "Georgia, serif", color: "#0f172a", align: "center", weight: "bold", italic: false },
     { id: "course", kind: "course", text: "for successfully completing {{courseTitle}}", x: 18, y: 51, width: 64, fontSize: 18, fontFamily: "Inter, sans-serif", color: "#334155", align: "center", weight: "normal", italic: false },
+    { id: "instructor", kind: "custom", text: "Instructor: {{instructorName}}", x: 18, y: 60, width: 64, fontSize: 15, fontFamily: "Inter, sans-serif", color: "#475569", align: "center", weight: "normal", italic: false },
     { id: "date", kind: "date", text: "Issued {{issuedAt}}", x: 12, y: 74, width: 30, fontSize: 14, fontFamily: "Inter, sans-serif", color: "#334155", align: "left", weight: "normal", italic: false },
     { id: "code", kind: "code", text: "Verification {{verificationCode}}", x: 58, y: 74, width: 30, fontSize: 14, fontFamily: "Inter, sans-serif", color: "#334155", align: "right", weight: "normal", italic: false },
     { id: "signature", kind: "signature", text: "EduCore Admissions", x: 34, y: 79, width: 32, fontSize: 16, fontFamily: "Georgia, serif", color: "#111827", align: "center", weight: "semibold", italic: true }
   ]
 };
+
+const defaultInstructorElement = defaultTemplate.elements.find((element) => element.id === "instructor")!;
+
+function templateWithInstructorElement<T extends { elements?: unknown[] }>(template: T) {
+  const elements = Array.isArray(template.elements) ? template.elements : [];
+  const hasInstructorElement = elements.some((element) => {
+    if (!element || typeof element !== "object") return false;
+    const candidate = element as { id?: unknown; text?: unknown };
+    return candidate.id === "instructor" || (typeof candidate.text === "string" && candidate.text.includes("{{instructorName}}"));
+  });
+
+  return hasInstructorElement ? { ...template, elements } : { ...template, elements: [...elements, defaultInstructorElement] };
+}
 
 function verificationCode() {
   return `EDU-${crypto.randomBytes(4).toString("hex").toUpperCase()}`;
@@ -85,7 +99,7 @@ async function uniqueVerificationCode() {
 
 async function currentCertificateTemplate() {
   const template = await CertificateTemplate.findOne({}).sort({ updatedAt: -1 }).lean();
-  return template ?? defaultTemplate;
+  return templateWithInstructorElement(template ?? defaultTemplate);
 }
 
 async function assertClassAccessible(user: Express.UserClaims, classId: string) {

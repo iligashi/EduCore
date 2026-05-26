@@ -16,6 +16,7 @@ import { InstructorsPage } from "./pages/InstructorsPage";
 import { LoginPage } from "./pages/LoginPage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { PublicHomePage } from "./pages/PublicHomePage";
+import { QuizzesPage } from "./pages/QuizzesPage";
 import { ReportsPage } from "./pages/ReportsPage";
 import { SearchPage } from "./pages/SearchPage";
 import { StudentsPage } from "./pages/StudentsPage";
@@ -80,6 +81,14 @@ export default function App() {
             }
           />
           <Route path="assignments" element={<AssignmentsPage />} />
+          <Route
+            path="quizzes"
+            element={
+              <RoleRoute roles={["admin", "instructor", "student"]}>
+                <QuizzesPage />
+              </RoleRoute>
+            }
+          />
           <Route
             path="attendance"
             element={

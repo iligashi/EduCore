@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Award, CheckCircle2, MousePointer2, Palette, Plus, Save, Search, Type } from "lucide-react";
+import { Award, CheckCircle2, MousePointer2, Palette, Plus, Save, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
@@ -27,6 +27,7 @@ const fallbackTemplate: CertificateTemplate = {
 };
 
 const colorSwatches = ["#fbfaf7", "#ffffff", "#f8fafc", "#111827", "#0f766e", "#1d4ed8", "#7c2d12", "#b45309"];
+const instructorTemplateElement = fallbackTemplate.elements.find((element) => element.id === "instructor")!;
 
 function gradeLabel(value: number | null) {
   return value === null || value === undefined ? "No grades" : `${value}%`;
@@ -83,7 +84,14 @@ function elementText(element: CertificateElement, certificate?: PreviewData | nu
 }
 
 function cloneTemplate(template?: CertificateTemplate): CertificateTemplate {
-  return JSON.parse(JSON.stringify(template ?? fallbackTemplate)) as CertificateTemplate;
+  const clone = JSON.parse(JSON.stringify(template ?? fallbackTemplate)) as CertificateTemplate;
+  const elements = Array.isArray(clone.elements) ? clone.elements : [];
+  const hasInstructorElement = elements.some((element) => element.id === "instructor" || element.text?.includes("{{instructorName}}"));
+
+  return {
+    ...clone,
+    elements: hasInstructorElement ? elements : [...elements, { ...instructorTemplateElement }]
+  };
 }
 
 function weightClass(weight: CertificateElement["weight"]) {
@@ -212,7 +220,9 @@ export function GradebookPage() {
 
   const selectedElement = draftTemplate.elements.find((element) => element.id === selectedElementId) ?? draftTemplate.elements[0];
   const selectedCertificate = (certificates?.data ?? []).find((certificate) => certificate._id === previewCertificateId) ?? null;
-  const selectedGradebookRow = rows.find((row) => `${row.studentId}:${row.classId}` === selectedGradebookKey) ?? rows[0] ?? null;
+  const selectedGradebookRow = previewCertificateId
+    ? null
+    : rows.find((row) => `${row.studentId}:${row.classId}` === selectedGradebookKey) ?? rows[0] ?? null;
   const rowCertificate = selectedGradebookRow
     ? (certificates?.data ?? []).find((certificate) => certificate.studentId === selectedGradebookRow.studentId && certificate.classId === selectedGradebookRow.classId)
     : null;
@@ -229,7 +239,18 @@ export function GradebookPage() {
           verificationCode: "Pending issue"
         }
       : null);
-  const previewTemplate = selectedCertificate?.templateSnapshot ?? rowCertificate?.templateSnapshot ?? draftTemplate;
+  const previewTemplate = cloneTemplate(selectedCertificate?.templateSnapshot ?? rowCertificate?.templateSnapshot ?? draftTemplate);
+  const selectedRowHasCertificate = Boolean(rowCertificate?.status === "issued");
+  const canIssueSelectedCertificate = Boolean(
+    user?.role !== "student" && selectedGradebookRow && selectedGradebookRow.certificateEligible && !selectedRowHasCertificate
+  );
+  const issueSelectedHelp = !selectedGradebookRow
+    ? "Select a student first"
+    : selectedRowHasCertificate
+      ? "Certificate already issued"
+      : !selectedGradebookRow.certificateEligible
+        ? "Complete grading before issuing"
+        : "Store this certificate and mark it issued";
 
   function updateTemplate(updater: (current: CertificateTemplate) => CertificateTemplate) {
     setDraftTemplate((current) => updater(cloneTemplate(current)));
@@ -245,7 +266,17 @@ export function GradebookPage() {
   const issueCertificate = useMutation({
     mutationFn: (row: GradebookRow) => api.post<Certificate>("/gradebook/certificates", { studentId: row.studentId, classId: row.classId }),
     onMutate: () => setActionError(""),
-    onSuccess: () => {
+    onSuccess: (certificate) => {
+      queryClient.setQueryData<{ data: Certificate[] }>(["certificates"], (current) => {
+        const data = current?.data ?? [];
+        const nextData = data.some((item) => item._id === certificate._id)
+          ? data.map((item) => (item._id === certificate._id ? certificate : item))
+          : [certificate, ...data];
+
+        return { data: nextData };
+      });
+      setPreviewCertificateId(certificate._id);
+      setSelectedGradebookKey("");
       queryClient.invalidateQueries({ queryKey: ["certificates"] });
       queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
@@ -311,13 +342,14 @@ export function GradebookPage() {
                 </thead>
                 <tbody>
                   {rows.map((row) => {
-                    const hasCertificate = certificateKeys.has(`${row.studentId}:${row.classId}`);
+                    const rowKey = `${row.studentId}:${row.classId}`;
+                    const hasCertificate = certificateKeys.has(rowKey);
                     return (
                       <tr
                         key={`${row.studentId}-${row.classId}`}
-                        className={selectedGradebookKey === `${row.studentId}:${row.classId}` ? "bg-teal-50/40" : "cursor-pointer hover:bg-slate-50"}
+                        className={selectedGradebookKey === rowKey ? "bg-teal-50/40" : "cursor-pointer hover:bg-slate-50"}
                         onClick={() => {
-                          setSelectedGradebookKey(`${row.studentId}:${row.classId}`);
+                          setSelectedGradebookKey(rowKey);
                           setPreviewCertificateId("");
                         }}
                       >
@@ -346,7 +378,17 @@ export function GradebookPage() {
                             user?.role === "student" ? (
                               <Badge tone="warning">not issued</Badge>
                             ) : (
-                              <Button size="sm" disabled={issueCertificate.isPending} onClick={() => issueCertificate.mutate(row)}>
+                              <Button
+                                type="button"
+                                size="sm"
+                                disabled={issueCertificate.isPending}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  setSelectedGradebookKey(rowKey);
+                                  setPreviewCertificateId("");
+                                  issueCertificate.mutate(row);
+                                }}
+                              >
                                 <Award size={14} />
                                 Issue
                               </Button>
@@ -379,6 +421,7 @@ export function GradebookPage() {
                 <div className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_320px]">
                   <CertificateCanvas
                     template={draftTemplate}
+                    certificate={previewData}
                     selectedId={selectedElementId}
                     editable
                     large
@@ -497,10 +540,26 @@ export function GradebookPage() {
                 </div>
               ) : null}
               <CertificateCanvas template={previewTemplate} certificate={previewData} />
-              <Button className="w-full" variant="outline" onClick={() => window.print()}>
-                <Palette size={16} />
-                Print preview
-              </Button>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Button type="button" className="w-full" variant="outline" onClick={() => window.print()}>
+                  <Palette size={16} />
+                  Print preview
+                </Button>
+                {user?.role !== "student" ? (
+                  <Button
+                    type="button"
+                    className="w-full"
+                    disabled={!canIssueSelectedCertificate || issueCertificate.isPending}
+                    title={issueSelectedHelp}
+                    onClick={() => {
+                      if (selectedGradebookRow) issueCertificate.mutate(selectedGradebookRow);
+                    }}
+                  >
+                    <CheckCircle2 size={16} />
+                    Save & issue
+                  </Button>
+                ) : null}
+              </div>
             </CardContent>
           </Card>
 
