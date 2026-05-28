@@ -12,4 +12,4 @@ backend/uploads/*
 *.log
 coverage/
 .vite/
-
+tmp/

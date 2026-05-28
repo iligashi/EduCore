@@ -1,0 +1,1554 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>EduCore LMS & DMS Enterprise Documentation</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 16mm 14mm 18mm;
+    }
+
+    :root {
+      --ink: #172033;
+      --muted: #5c6b82;
+      --line: #d8e0ea;
+      --soft: #f4f7fb;
+      --primary: #147b83;
+      --primary-dark: #0e5960;
+      --accent: #d98914;
+      --danger: #b91c1c;
+      --success: #166534;
+      --page: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      color: var(--ink);
+      background: var(--page);
+      font-family: "Segoe UI", Arial, sans-serif;
+      font-size: 10.3pt;
+      line-height: 1.42;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    body {
+      counter-reset: section;
+    }
+
+    .cover {
+      min-height: 246mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-after: always;
+      padding: 20mm 4mm 8mm;
+      background:
+        linear-gradient(120deg, rgba(20, 123, 131, 0.1), rgba(217, 137, 20, 0.08)),
+        #fff;
+    }
+
+    .brand-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 9px;
+      background: var(--primary);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 18px;
+    }
+
+    .eyebrow {
+      color: var(--primary-dark);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 8.5pt;
+    }
+
+    h1 {
+      margin: 32px 0 10px;
+      font-size: 33pt;
+      line-height: 1.03;
+      letter-spacing: 0;
+      color: #0f172a;
+    }
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 19pt;
+      line-height: 1.15;
+      color: #0f172a;
+      break-after: avoid;
+    }
+
+    h3 {
+      margin: 16px 0 7px;
+      font-size: 12.6pt;
+      color: var(--primary-dark);
+      break-after: avoid;
+    }
+
+    h4 {
+      margin: 12px 0 5px;
+      font-size: 10.6pt;
+      color: #26364d;
+      break-after: avoid;
+    }
+
+    p {
+      margin: 0 0 8px;
+    }
+
+    ul,
+    ol {
+      margin: 6px 0 10px 20px;
+      padding: 0;
+    }
+
+    li {
+      margin: 2px 0;
+    }
+
+    .cover-subtitle {
+      max-width: 690px;
+      font-size: 13.5pt;
+      color: #344256;
+      margin: 12px 0 24px;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      max-width: 680px;
+      margin-top: 22px;
+    }
+
+    .meta-box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: rgba(255, 255, 255, 0.78);
+    }
+
+    .meta-label {
+      display: block;
+      font-size: 8.4pt;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 3px;
+      font-weight: 700;
+    }
+
+    .meta-value {
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .note {
+      border-left: 4px solid var(--primary);
+      background: #eef9f9;
+      padding: 10px 12px;
+      margin: 10px 0 12px;
+      border-radius: 0 8px 8px 0;
+    }
+
+    .warning {
+      border-left-color: var(--danger);
+      background: #fff1f2;
+    }
+
+    .success {
+      border-left-color: var(--success);
+      background: #f0fdf4;
+    }
+
+    .toc {
+      page-break-after: always;
+    }
+
+    .toc-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 7px 18px;
+      margin-top: 12px;
+    }
+
+    .toc-item {
+      border-bottom: 1px solid var(--line);
+      padding: 5px 0;
+      color: #26364d;
+      font-weight: 600;
+    }
+
+    .section {
+      page-break-before: always;
+      position: relative;
+    }
+
+    .section:first-of-type {
+      page-break-before: auto;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      border-bottom: 2px solid var(--primary);
+      padding-bottom: 7px;
+      margin-bottom: 12px;
+    }
+
+    .section-number {
+      color: var(--primary);
+      font-weight: 800;
+      font-size: 14pt;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 11px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fff;
+      break-inside: avoid;
+    }
+
+    .card-soft {
+      background: var(--soft);
+    }
+
+    .pill {
+      display: inline-block;
+      border: 1px solid #b8d7d9;
+      color: var(--primary-dark);
+      background: #eef9f9;
+      border-radius: 999px;
+      padding: 2px 8px;
+      margin: 1px 3px 3px 0;
+      font-size: 8.5pt;
+      font-weight: 700;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 12px;
+      page-break-inside: auto;
+      table-layout: fixed;
+    }
+
+    th,
+    td {
+      border: 1px solid var(--line);
+      padding: 6px 7px;
+      vertical-align: top;
+      word-break: break-word;
+    }
+
+    th {
+      background: #eaf5f6;
+      color: #123c42;
+      font-weight: 800;
+      text-align: left;
+    }
+
+    tr {
+      break-inside: avoid;
+    }
+
+    code {
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 9pt;
+      color: #143047;
+      background: #eef2f7;
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+
+    pre {
+      white-space: pre-wrap;
+      background: #0f172a;
+      color: #f8fafc;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 8.8pt;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .small {
+      font-size: 8.9pt;
+      color: var(--muted);
+    }
+
+    .compact td,
+    .compact th {
+      padding: 4px 6px;
+      font-size: 8.8pt;
+    }
+
+    .diagram {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px;
+      background: #fff;
+      margin: 8px 0 12px;
+      break-inside: avoid;
+    }
+
+    .diagram svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .wire {
+      border: 1px dashed #9aa9bb;
+      background: #fbfdff;
+      border-radius: 8px;
+      min-height: 76px;
+      padding: 8px;
+      break-inside: avoid;
+    }
+
+    .wire-title {
+      font-weight: 800;
+      color: var(--primary-dark);
+      margin-bottom: 5px;
+    }
+
+    .bar {
+      height: 9px;
+      border-radius: 6px;
+      background: #d7e1eb;
+      margin: 5px 0;
+    }
+
+    .bar.short {
+      width: 58%;
+    }
+
+    .bar.mid {
+      width: 74%;
+    }
+
+    .columns {
+      column-count: 2;
+      column-gap: 18px;
+    }
+
+    .footer {
+      position: fixed;
+      left: 14mm;
+      right: 14mm;
+      bottom: 7mm;
+      border-top: 1px solid var(--line);
+      padding-top: 3px;
+      font-size: 8pt;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .avoid-break {
+      break-inside: avoid;
+    }
+  </style>
+</head>
+<body>
+  <div class="footer">
+    <span>EduCore LMS & DMS Enterprise Documentation</span>
+    <span>Review draft - 2026-05-26</span>
+  </div>
+
+  <section class="cover">
+    <div>
+      <div class="brand-row">
+        <div class="logo">EC</div>
+        <div>
+          <div class="eyebrow">Enterprise software documentation</div>
+          <div class="meta-value">EduCore LMS & DMS</div>
+        </div>
+      </div>
+      <h1>Project Documentation and Deep Review</h1>
+      <p class="cover-subtitle">
+        Codebase-derived documentation for the EduCore Learning Management System and Digital Management System, covering charter, business requirements, SRS, stories, use cases, architecture, database, API, UI/UX, security, testing, DevOps, deployment, maintenance, project management, changelog, and user guidance.
+      </p>
+      <div class="meta-grid">
+        <div class="meta-box">
+          <span class="meta-label">Project</span>
+          <span class="meta-value">EduCore LMS & DMS</span>
+        </div>
+        <div class="meta-box">
+          <span class="meta-label">Document Status</span>
+          <span class="meta-value">Code Review Draft</span>
+        </div>
+        <div class="meta-box">
+          <span class="meta-label">Reviewed On</span>
+          <span class="meta-value">May 26, 2026</span>
+        </div>
+        <div class="meta-box">
+          <span class="meta-label">Repository</span>
+          <span class="meta-value">C:\xampp\htdocs\EduCore</span>
+        </div>
+      </div>
+    </div>
+    <div class="note">
+      <strong>Basis of review:</strong> README, existing docs, sprint plan, backend Express modules, MySQL schema, Mongoose models, OpenAPI summary, frontend routes and pages, Docker Compose, environment template, and TypeScript validation. Items not present in the repository are marked as assumptions or recommended additions.
+    </div>
+  </section>
+
+  <section class="toc">
+    <div class="section-title">
+      <span class="section-number">00</span>
+      <h2>Table Of Contents</h2>
+    </div>
+    <div class="toc-grid">
+      <div class="toc-item">1. Project Charter / Vision Document</div>
+      <div class="toc-item">2. Business Requirements Document</div>
+      <div class="toc-item">3. Software Requirements Specification</div>
+      <div class="toc-item">4. User Stories</div>
+      <div class="toc-item">5. Use Case Documentation</div>
+      <div class="toc-item">6. System Architecture Document</div>
+      <div class="toc-item">7. Database Documentation</div>
+      <div class="toc-item">8. API Documentation</div>
+      <div class="toc-item">9. UI/UX Documentation</div>
+      <div class="toc-item">10. Security Documentation</div>
+      <div class="toc-item">11. Testing Documentation</div>
+      <div class="toc-item">12. DevOps Documentation</div>
+      <div class="toc-item">13. Deployment Guide</div>
+      <div class="toc-item">14. Maintenance Documentation</div>
+      <div class="toc-item">15. Project Management Documentation</div>
+      <div class="toc-item">16. Change Log</div>
+      <div class="toc-item">17. User Documentation</div>
+      <div class="toc-item">18. Technical Documentation Structure</div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">01</span>
+      <h2>Project Charter / Vision Document</h2>
+    </div>
+    <table>
+      <tr><th>Item</th><th>Project Definition</th></tr>
+      <tr><td>Project Name</td><td>EduCore LMS & DMS</td></tr>
+      <tr><td>Project Description</td><td>EduCore is a full-stack platform that combines learning management and digital management operations for schools, bootcamps, training providers, or university departments. It provides role-based portals, course/class management, admissions, documents, lessons, assignments, attendance, gradebook, certificates, quizzes, notifications, search, reporting, import/export, and an AI-style Copilot workspace.</td></tr>
+      <tr><td>Business Goals</td><td>Centralize educational operations, reduce manual administration, improve instructor and learner visibility, support digital admissions and document review, and provide reporting for academic decision making.</td></tr>
+      <tr><td>Problem Statement</td><td>Educational teams often manage applications, classes, attendance, assignments, lesson content, documents, communications, and reports in disconnected tools. This causes duplicate work, weak visibility, slow student support, and inconsistent records. EduCore addresses this by combining operational records and learning workflows in one portal.</td></tr>
+      <tr><td>Target Users</td><td>Administrators, instructors, students, public applicants, academic leadership, admissions staff, IT/deployment maintainers, and project evaluators.</td></tr>
+      <tr><td>Stakeholders</td><td>Project sponsor, product owner, academic administration, instructors, learners, admissions/review team, support staff, developers, database administrator, DevOps maintainer, security reviewer.</td></tr>
+    </table>
+
+    <h3>Success Metrics (KPIs)</h3>
+    <table class="compact">
+      <tr><th>KPI</th><th>Target</th><th>Measurement Method</th></tr>
+      <tr><td>Role coverage</td><td>Admin, instructor, student, and public applicant flows complete for MVP.</td><td>Acceptance test checklist and demo scripts.</td></tr>
+      <tr><td>Administrative efficiency</td><td>Reduce manual student/course/attendance/report work by at least 40 percent.</td><td>Compare manual workflow steps before and after adoption.</td></tr>
+      <tr><td>Page response</td><td>Initial portal pages load in under 2 seconds on local/staging network.</td><td>Lighthouse or browser performance traces.</td></tr>
+      <tr><td>API performance</td><td>Common list/detail endpoints under 300 ms p95 for demo scale.</td><td>API load tests and server logs.</td></tr>
+      <tr><td>Data quality</td><td>Unique emails, student codes, and enrollment constraints prevent duplicate key records.</td><td>Database constraints and negative tests.</td></tr>
+      <tr><td>Security readiness</td><td>Zero known exposed secrets and zero critical dependency vulnerabilities before production.</td><td>Secret scanning, dependency audit, and security review.</td></tr>
+      <tr><td>Testing</td><td>Automated tests cover auth, RBAC, core APIs, and major UI workflows.</td><td>CI test reports.</td></tr>
+      <tr><td>Operational readiness</td><td>Backup, restore, logging, monitoring, and deployment runbooks documented.</td><td>Maintenance checklist sign-off.</td></tr>
+    </table>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3>Scope</h3>
+        <ul>
+          <li>JWT authentication and role-based authorization.</li>
+          <li>Admin operations for users, students, instructors, applications, courses, classes, enrollments, documents, CMS, reports, certificates, and import/export.</li>
+          <li>Instructor operations for class content, assignments, grading, attendance, quizzes, success center, notifications, and class analytics.</li>
+          <li>Student operations for dashboard, lessons, assignments, submissions, documents, gradebook/certificates, quizzes, notifications, recommendations, and Copilot.</li>
+          <li>Public course catalog and course application submission.</li>
+          <li>MySQL plus MongoDB persistence, Socket.IO realtime events, and Docker Compose local deployment.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Out Of Scope</h3>
+        <ul>
+          <li>Payment processing, invoicing, payroll, and finance modules.</li>
+          <li>Native iOS/Android apps.</li>
+          <li>External SIS/LTI integrations, enterprise SSO, and SCORM/xAPI runtime.</li>
+          <li>Production queue workers, Redis cache, CDN, object storage migration, and full-text search engine.</li>
+          <li>Advanced proctoring, plagiarism detection, and video conferencing.</li>
+          <li>Multi-tenant institution isolation unless added as a future phase.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Budget</h3>
+    <p>
+      The repository does not define a formal monetary budget. Recommended planning assumption: treat the current version as an academic or MVP project with internal labor and low-cost local infrastructure. A production pilot should budget for hosting, managed MySQL/MongoDB or VM capacity, object storage, domain/TLS, email delivery, monitoring, backups, and security review. Expected MVP infrastructure range is approximately USD 50-300/month depending on managed services and traffic.
+    </p>
+
+    <h3>Timeline</h3>
+    <p>
+      The repository includes a six-sprint plan: setup, authentication, DMS, LMS, advanced features, and finalization. A realistic capstone/MVP timeline is 6-10 weeks with one sprint per week or per two weeks. Production hardening should be planned as a separate phase after MVP acceptance.
+    </p>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">02</span>
+      <h2>Business Requirements Document (BRD)</h2>
+    </div>
+    <h3>Executive Summary</h3>
+    <p>
+      EduCore is designed to replace fragmented school operations with one authenticated portal. It serves administrators who need operational control, instructors who need class delivery tools, students who need learning and communication workflows, and applicants who need a public application path. The project already implements a broad MVP surface, but production readiness requires stronger automated tests, secret hygiene, CI/CD, monitoring, and backup procedures.
+    </p>
+
+    <h3>Business Objectives</h3>
+    <table>
+      <tr><th>Objective</th><th>Business Rationale</th><th>Implemented Evidence</th></tr>
+      <tr><td>Increase operational visibility</td><td>Admins need dashboards, reports, and searchable records.</td><td>Reports routes, dashboard page, search page, success center.</td></tr>
+      <tr><td>Reduce manual work</td><td>Manual spreadsheets and disconnected records cause mistakes.</td><td>Student/instructor CRUD, enrollment, attendance bulk save, import/export.</td></tr>
+      <tr><td>Improve student experience</td><td>Students need one place for classes, work, grades, documents, quizzes, and notifications.</td><td>Student home, lessons, work, gradebook, documents, quiz and inbox flows.</td></tr>
+      <tr><td>Improve instructor workflow</td><td>Instructors need content, attendance, grading, quiz, and intervention tools.</td><td>Instructor home, Class Studio, assignments, attendance, live quizzes, success center.</td></tr>
+      <tr><td>Support admissions pipeline</td><td>Applicants need public course discovery; admins need review and enrollment handoff.</td><td>Public course/application routes and admin Applications page.</td></tr>
+      <tr><td>Enable analytics and support</td><td>At-risk students need early intervention.</td><td>Success center and class/attendance/performance reports.</td></tr>
+    </table>
+
+    <h3>Functional Goals</h3>
+    <div class="columns">
+      <ul>
+        <li>User registration, login, logout, refresh token rotation, and current user lookup.</li>
+        <li>Role-based portal navigation for admin, instructor, and student.</li>
+        <li>User, student, instructor, course, class, enrollment, assignment, submission, attendance, document, notification, CMS, quiz, application, report, search, and import/export workflows.</li>
+        <li>Public course browsing and public course application submission.</li>
+        <li>Realtime notifications and live quiz updates using Socket.IO.</li>
+        <li>AI-style Copilot chat, drafts, documents, citations, and audit access.</li>
+      </ul>
+    </div>
+
+    <h3>Non-Functional Goals</h3>
+    <table class="compact">
+      <tr><th>Category</th><th>Goal</th><th>Current Support</th><th>Gap</th></tr>
+      <tr><td>Performance</td><td>Fast portal and API response for MVP scale.</td><td>Pagination helpers, SQL indexes, TanStack Query caching.</td><td>No load tests yet.</td></tr>
+      <tr><td>Security</td><td>Protect data by role, validate input, hash passwords, rate limit requests.</td><td>JWT, bcrypt, RBAC, Zod, Helmet, CORS, rate limit.</td><td>Secret leakage risk, localStorage tokens, missing upload MIME allowlist.</td></tr>
+      <tr><td>Scalability</td><td>Keep modules separated and deployable.</td><td>Backend route modules, separate frontend/backend/Docker services.</td><td>No queue/cache/search service yet.</td></tr>
+      <tr><td>Reliability</td><td>Recover from database or app failures.</td><td>Docker service restart policies.</td><td>No backup/restore automation in repo.</td></tr>
+      <tr><td>Maintainability</td><td>Use typed code and module boundaries.</td><td>TypeScript in frontend/backend; typecheck passes.</td><td>No automated unit/integration test suite.</td></tr>
+      <tr><td>Usability</td><td>Support efficient role-specific workflows.</td><td>Role-aware navigation and responsive UI components.</td><td>No formal usability testing artifacts.</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">03</span>
+      <h2>Software Requirements Specification (SRS)</h2>
+    </div>
+    <h3>Introduction</h3>
+    <table>
+      <tr><th>Area</th><th>Specification</th></tr>
+      <tr><td>Purpose</td><td>Define the functional and non-functional requirements for the EduCore LMS & DMS system.</td></tr>
+      <tr><td>Scope</td><td>A role-based web platform for educational operations, learning delivery, admissions, reporting, documents, notifications, quizzes, and AI-assisted support.</td></tr>
+      <tr><td>Definitions</td><td>LMS: Learning Management System. DMS: Digital Management System. RBAC: Role-Based Access Control. JWT: JSON Web Token. CMS: Content Management System. KPI: Key Performance Indicator.</td></tr>
+      <tr><td>References</td><td><code>README.md</code>, <code>docs/project-plan.md</code>, <code>docs/erd.md</code>, <code>docs/api-docs.md</code>, <code>backend/docs/openapi.yaml</code>, backend routes, database schema, frontend routes.</td></tr>
+    </table>
+
+    <h3>Overall Description</h3>
+    <div class="grid-2">
+      <div class="card">
+        <h4>Product Perspective</h4>
+        <p>EduCore is a monorepo with a React/Vite frontend and an Express/TypeScript backend. MySQL stores relational academic records. MongoDB stores flexible content, notifications, documents, quiz sessions, applications, and Copilot artifacts.</p>
+      </div>
+      <div class="card">
+        <h4>User Classes</h4>
+        <p><span class="pill">Public Applicant</span><span class="pill">Student</span><span class="pill">Instructor</span><span class="pill">Admin</span><span class="pill">Maintainer</span></p>
+      </div>
+      <div class="card">
+        <h4>Constraints</h4>
+        <p>Node.js, Express, React, TypeScript, MySQL, MongoDB, local uploads, JWT auth, Docker Compose service model, and browser-based UI.</p>
+      </div>
+      <div class="card">
+        <h4>Assumptions</h4>
+        <p>Production deployment will replace development secrets, configure SMTP/object storage, enable HTTPS, add CI/CD and backup jobs, and define actual budget and service-level targets.</p>
+      </div>
+    </div>
+
+    <h3>Functional Requirements</h3>
+    <table class="compact">
+      <tr><th>ID</th><th>Feature</th><th>Description</th><th>Inputs</th><th>Outputs</th><th>Acceptance Criteria</th></tr>
+      <tr><td>FR-001</td><td>Public Course Catalog</td><td>Visitors can view published courses and available class metadata.</td><td>Optional filters.</td><td>Course cards.</td><td>Only published/visible courses are listed; course title, instructor, level, and class count appear.</td></tr>
+      <tr><td>FR-002</td><td>Course Application</td><td>Visitors submit admissions applications.</td><td>Name, email, phone, course, education, message.</td><td>Application record.</td><td>Required fields validate; duplicate/review state is trackable by admin.</td></tr>
+      <tr><td>FR-003</td><td>User Registration</td><td>Users can register as students through the auth API.</td><td>Full name, email, password, profile fields.</td><td>User, student profile, tokens.</td><td>Email is unique; password is at least 8 characters; linked student profile is created.</td></tr>
+      <tr><td>FR-004</td><td>Login</td><td>Users authenticate using email and password.</td><td>Email, password.</td><td>Access token, refresh token, public user.</td><td>Inactive or invalid credentials return 401; active users receive tokens.</td></tr>
+      <tr><td>FR-005</td><td>Session Refresh/Logout</td><td>Refresh tokens rotate and can be revoked.</td><td>Refresh token.</td><td>New token pair or revoked session.</td><td>Expired/revoked tokens fail; logout revokes matching token hash.</td></tr>
+      <tr><td>FR-006</td><td>RBAC</td><td>Protected routes enforce admin, instructor, and student authorization.</td><td>JWT access token.</td><td>Allowed response or 401/403.</td><td>Unauthorized users cannot access restricted modules.</td></tr>
+      <tr><td>FR-007</td><td>User Management</td><td>Admins manage base user accounts and status.</td><td>Name, email, role, status, password.</td><td>User records.</td><td>Admins can list, create, update, and deactivate/delete users.</td></tr>
+      <tr><td>FR-008</td><td>Student Management</td><td>Admins manage student profiles and class assignments; instructors can view permitted students.</td><td>Student code, department, semester, classes.</td><td>Student list/detail/history.</td><td>Student code and email remain unique; class assignments persist.</td></tr>
+      <tr><td>FR-009</td><td>Instructor Management</td><td>Admins manage instructor profiles and class assignments.</td><td>Profile fields, specialization, classes.</td><td>Instructor records.</td><td>Instructor accounts can be created, updated, password reset, assigned, and removed.</td></tr>
+      <tr><td>FR-010</td><td>Course Management</td><td>Admins create and maintain courses.</td><td>Title, description, instructor, level, status.</td><td>Course catalog entries.</td><td>Draft/published/archived states are supported.</td></tr>
+      <tr><td>FR-011</td><td>Class Scheduling</td><td>Admins and instructors manage class room, schedule, start/end dates, and class days.</td><td>Course, room, schedule JSON, days.</td><td>Class and class-day records.</td><td>Classes link to courses; days are unique per class/day number.</td></tr>
+      <tr><td>FR-012</td><td>Enrollment</td><td>Admins enroll students into classes.</td><td>Student ID, class ID.</td><td>Enrollment row.</td><td>A student cannot be enrolled twice in the same class.</td></tr>
+      <tr><td>FR-013</td><td>Class Studio</td><td>Instructors/admins manage class-day content, comments, backups, and assignments.</td><td>Class day content, blocks, assets, comments.</td><td>Published days and backups.</td><td>Assigned instructors can edit their class content; backups preserve snapshots.</td></tr>
+      <tr><td>FR-014</td><td>Lesson CMS</td><td>Admins create dynamic lessons and assets.</td><td>Course, title, content, blocks, assets, published flag.</td><td>Lesson documents.</td><td>Students see published content for enrolled classes.</td></tr>
+      <tr><td>FR-015</td><td>Assignments</td><td>Admins/instructors create assignments attached to courses/classes/days.</td><td>Title, description, due date, points.</td><td>Assignment records and notifications.</td><td>Students can view assigned work; invalid due dates fail validation.</td></tr>
+      <tr><td>FR-016</td><td>Submissions</td><td>Students upload assignment submissions.</td><td>Assignment ID, file, notes.</td><td>Submission record.</td><td>Duplicate assignment/student submissions are blocked; file size is limited to 10 MB.</td></tr>
+      <tr><td>FR-017</td><td>Grading</td><td>Instructors grade submissions and provide feedback.</td><td>Submission ID, grade, feedback.</td><td>Updated submission.</td><td>Grades are numeric and visible in gradebook/performance reports.</td></tr>
+      <tr><td>FR-018</td><td>Attendance</td><td>Instructors mark class-day attendance, including bulk save.</td><td>Class, day, students, status, notes.</td><td>Attendance records.</td><td>Only instructors can mark attendance; status is one of present, absent, late, excused.</td></tr>
+      <tr><td>FR-019</td><td>Gradebook</td><td>Users view gradebook rows according to role.</td><td>Class filter.</td><td>Performance rows.</td><td>Students see their data; admins/instructors see permitted classes.</td></tr>
+      <tr><td>FR-020</td><td>Certificates</td><td>Admins/instructors issue certificates; admins configure templates and revoke.</td><td>Student, class, template elements.</td><td>Certificate record and verification code.</td><td>Certificate eligibility is calculated; revoked certificates remain auditable.</td></tr>
+      <tr><td>FR-021</td><td>Documents</td><td>Students/admins upload documents; admins approve/reject.</td><td>Title, type, file.</td><td>Student document records.</td><td>Students see their own documents; admins can review all.</td></tr>
+      <tr><td>FR-022</td><td>Notifications</td><td>Admins/instructors send realtime and persisted notifications.</td><td>Title, message, type, user/role target.</td><td>Notification document and socket event.</td><td>Recipients receive messages in inbox without full page refresh.</td></tr>
+      <tr><td>FR-023</td><td>Reports</td><td>Admins/instructors view dashboard, attendance, performance, success center, and class analytics.</td><td>Filters and role context.</td><td>Aggregated report data.</td><td>Restricted data respects role; dashboards show totals and trends.</td></tr>
+      <tr><td>FR-024</td><td>Global Search</td><td>Admins/instructors search across SQL and MongoDB resources.</td><td>Search query.</td><td>Grouped results.</td><td>Empty or short queries are handled; results grouped by entity.</td></tr>
+      <tr><td>FR-025</td><td>Import/Export</td><td>Admins import students and export key entities.</td><td>CSV/XLSX file or export format.</td><td>Created records or CSV/JSON/XLSX.</td><td>Invalid rows are rejected or reported; exports include requested entity.</td></tr>
+      <tr><td>FR-026</td><td>Live Quizzes</td><td>Instructors generate/start/close quizzes; students accept and submit attempts.</td><td>Class/day, questions, answers.</td><td>Quiz sessions and attempts.</td><td>Scores calculate correctly; student cannot submit duplicate attempt.</td></tr>
+      <tr><td>FR-027</td><td>Recommendations</td><td>Students receive lesson recommendations from weak performance signals.</td><td>Student performance.</td><td>Recommended lessons.</td><td>Non-students receive an empty or restricted response.</td></tr>
+      <tr><td>FR-028</td><td>Copilot</td><td>Users chat with contextual assistant; drafts/documents/audit are managed by role.</td><td>Message, mode, documents, draft status.</td><td>Threads, messages, drafts, citations.</td><td>Role visibility rules apply; admin can view audit data.</td></tr>
+      <tr><td>FR-029</td><td>CMS Pages/Announcements</td><td>Admins manage portal pages; admins/instructors post announcements.</td><td>Slug, title, blocks, status, audience.</td><td>CMS content and announcements.</td><td>Slug is unique; audience visibility is enforced.</td></tr>
+      <tr><td>FR-030</td><td>Student Success</td><td>Admins/instructors track at-risk students and interventions.</td><td>Student, note, priority, action.</td><td>Intervention/activity records.</td><td>Risk list reflects attendance/grade/submission indicators.</td></tr>
+    </table>
+
+    <h3>Non-Functional Requirements</h3>
+    <table class="compact">
+      <tr><th>ID</th><th>Requirement</th><th>Acceptance Criteria</th></tr>
+      <tr><td>NFR-001</td><td>Performance</td><td>Core API list endpoints use pagination where relevant and return under agreed p95 target for MVP data volume.</td></tr>
+      <tr><td>NFR-002</td><td>Security</td><td>All protected endpoints require JWT; role checks are tested; production secrets are not committed.</td></tr>
+      <tr><td>NFR-003</td><td>Validation</td><td>All write endpoints validate body, query, and params using schemas or equivalent checks.</td></tr>
+      <tr><td>NFR-004</td><td>Reliability</td><td>Database connections fail fast on startup; service health endpoint is available at <code>/health</code>.</td></tr>
+      <tr><td>NFR-005</td><td>Maintainability</td><td>Backend modules remain route/service/domain separated; TypeScript check passes in CI.</td></tr>
+      <tr><td>NFR-006</td><td>Usability</td><td>Portal navigation is role-aware and responsive for desktop and mobile.</td></tr>
+      <tr><td>NFR-007</td><td>Observability</td><td>Production deployment includes structured logs, error tracking, metrics, and alerting.</td></tr>
+      <tr><td>NFR-008</td><td>Backup</td><td>MySQL, MongoDB, and uploaded files have scheduled backups and documented restore tests.</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">04</span>
+      <h2>User Stories</h2>
+    </div>
+    <table class="compact">
+      <tr><th>ID</th><th>Story</th><th>Acceptance Criteria</th><th>Priority</th><th>Points</th></tr>
+      <tr><td>US-001</td><td>As a visitor, I want to browse courses so that I can choose a program before applying.</td><td>Published courses appear; course level and instructor are visible; application action is available.</td><td>High</td><td>5</td></tr>
+      <tr><td>US-002</td><td>As an applicant, I want to submit a course application so that admissions can review me.</td><td>Required data validates; application is stored; admin can see it in Admissions.</td><td>High</td><td>8</td></tr>
+      <tr><td>US-003</td><td>As an admin, I want to manage student records so that learner information stays accurate.</td><td>Create/update/deactivate works; email and code are unique; class assignments persist.</td><td>High</td><td>8</td></tr>
+      <tr><td>US-004</td><td>As an admin, I want to manage instructors so that teaching assignments are tracked.</td><td>Instructor account/profile creation works; classes can be assigned; password can be reset.</td><td>High</td><td>8</td></tr>
+      <tr><td>US-005</td><td>As an admin, I want to create courses and classes so that the institution can publish offerings.</td><td>Course stores instructor/status; class stores schedule; class appears in portal.</td><td>High</td><td>8</td></tr>
+      <tr><td>US-006</td><td>As an instructor, I want to edit class day content so that students receive structured lesson material.</td><td>Class day can be created/updated; published state controls visibility; assets can be attached.</td><td>High</td><td>8</td></tr>
+      <tr><td>US-007</td><td>As an instructor, I want to create assignments so that students can submit work.</td><td>Assignment requires title/due date/points; students see work; notification is generated.</td><td>High</td><td>5</td></tr>
+      <tr><td>US-008</td><td>As a student, I want to upload assignment files so that my instructor can grade them.</td><td>Upload validates size; submission is linked to assignment and student; duplicate is blocked.</td><td>High</td><td>5</td></tr>
+      <tr><td>US-009</td><td>As an instructor, I want to grade submissions so that student performance is visible.</td><td>Grade and feedback save; gradebook updates; student can view result.</td><td>High</td><td>5</td></tr>
+      <tr><td>US-010</td><td>As an instructor, I want to mark attendance in bulk so that class attendance is efficient.</td><td>Roster loads; statuses save; summary reflects present/absent/late/excused counts.</td><td>High</td><td>8</td></tr>
+      <tr><td>US-011</td><td>As an admin, I want dashboard and reports so that I can monitor school operations.</td><td>Dashboard totals, attendance, performance, class analytics, and success center load by role.</td><td>High</td><td>8</td></tr>
+      <tr><td>US-012</td><td>As a student, I want a personalized home page so that I can see courses, work, notifications, and lessons quickly.</td><td>Home page shows enrolled classes, assignments, notifications, and published class days.</td><td>High</td><td>5</td></tr>
+      <tr><td>US-013</td><td>As an admin, I want to review student documents so that required documents are approved or rejected.</td><td>Documents upload; admin can approve/reject; student sees status.</td><td>Medium</td><td>5</td></tr>
+      <tr><td>US-014</td><td>As an instructor, I want to run live quizzes so that class understanding can be measured immediately.</td><td>Questions generate/start; students accept/submit; results and close action work.</td><td>Medium</td><td>8</td></tr>
+      <tr><td>US-015</td><td>As a student, I want recommendations so that I can revisit weak topics.</td><td>Recommendations are based on weak performance; irrelevant roles are restricted.</td><td>Medium</td><td>5</td></tr>
+      <tr><td>US-016</td><td>As an admin, I want import/export so that external records can move in and out of the system.</td><td>Students import from file; exports support CSV, JSON, and XLSX.</td><td>Medium</td><td>5</td></tr>
+      <tr><td>US-017</td><td>As any authenticated user, I want notifications so that I receive timely messages.</td><td>Notifications persist, mark read, and update through sockets.</td><td>Medium</td><td>5</td></tr>
+      <tr><td>US-018</td><td>As an instructor/admin, I want a success center so that at-risk students receive intervention.</td><td>Risk data loads; intervention notes save; activity is auditable.</td><td>Medium</td><td>8</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">05</span>
+      <h2>Use Case Documentation</h2>
+    </div>
+    <table class="compact">
+      <tr><th>Use Case</th><th>Actors</th><th>Preconditions</th><th>Main Flow</th><th>Alternate Flow</th><th>Postconditions</th></tr>
+      <tr><td>UC-001 Apply For Course</td><td>Visitor</td><td>Public course exists.</td><td>Open public home; select course; enter applicant data; submit application.</td><td>Validation fails or course unavailable.</td><td>Application exists with pending/new status.</td></tr>
+      <tr><td>UC-002 Login</td><td>Admin, instructor, student</td><td>User account is active.</td><td>Open login; enter email/password; system validates; tokens are stored; role portal opens.</td><td>Invalid credentials return error; inactive user rejected.</td><td>Authenticated session exists.</td></tr>
+      <tr><td>UC-003 Manage Student</td><td>Admin</td><td>Admin is logged in.</td><td>Open Students; create or edit profile; assign classes; save.</td><td>Duplicate email/code rejected.</td><td>Student profile and related user are stored.</td></tr>
+      <tr><td>UC-004 Create Course And Class</td><td>Admin</td><td>Instructor exists.</td><td>Open Courses; create course; create class with room/schedule; publish as needed.</td><td>Missing instructor or invalid schedule.</td><td>Course and class are available to permitted users.</td></tr>
+      <tr><td>UC-005 Enroll Student</td><td>Admin</td><td>Student and class exist.</td><td>Select class; select student; submit enrollment.</td><td>Duplicate enrollment blocked.</td><td>Enrollment row exists.</td></tr>
+      <tr><td>UC-006 Publish Class Day</td><td>Instructor, admin</td><td>Class exists and user is authorized.</td><td>Open Class Studio; select class; create or edit class day; attach assets; publish.</td><td>Unauthorized instructor cannot edit unrelated class.</td><td>ClassDay document exists and can appear to students.</td></tr>
+      <tr><td>UC-007 Submit Assignment</td><td>Student</td><td>Student has visible assignment.</td><td>Open Work; choose file; upload submission.</td><td>File exceeds 10 MB or duplicate submission exists.</td><td>Submission record exists and instructor queue updates.</td></tr>
+      <tr><td>UC-008 Grade Submission</td><td>Instructor</td><td>Submission exists.</td><td>Open Assignments/Class Studio; select submission; enter grade and feedback; save.</td><td>Invalid grade rejected.</td><td>Gradebook and reports reflect grade.</td></tr>
+      <tr><td>UC-009 Mark Attendance</td><td>Instructor</td><td>Class roster exists.</td><td>Open Attendance; choose class day; mark statuses; save bulk attendance.</td><td>Outside edit window or invalid status.</td><td>Attendance records exist for class day.</td></tr>
+      <tr><td>UC-010 Run Live Quiz</td><td>Instructor, student</td><td>Class day has quiz questions.</td><td>Instructor starts session; socket notifies students; students accept and submit; instructor reviews results.</td><td>Student misses timer or session closes.</td><td>Quiz session and attempts are stored.</td></tr>
+      <tr><td>UC-011 Issue Certificate</td><td>Admin, instructor</td><td>Student is eligible.</td><td>Open Gradebook; select eligible row; issue certificate.</td><td>Student not eligible or certificate already exists.</td><td>Certificate with verification code exists.</td></tr>
+      <tr><td>UC-012 Send Notification</td><td>Admin, instructor</td><td>User is authorized.</td><td>Open Notifications; enter title/message/target; send.</td><td>Invalid role/user target.</td><td>Notification persists and socket event is emitted.</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">06</span>
+      <h2>System Architecture Document</h2>
+    </div>
+    <h3>Architecture Overview</h3>
+    <table>
+      <tr><th>Layer</th><th>Technology</th><th>Responsibility</th></tr>
+      <tr><td>Frontend</td><td>React 19, Vite 6, TypeScript, Tailwind CSS, React Router, TanStack Query, React Hook Form, Zod, Recharts, Lucide, Socket.IO Client</td><td>Role-based portal UI, public home, forms, dashboards, tables, reports, realtime inbox/quiz updates.</td></tr>
+      <tr><td>Backend</td><td>Node.js, Express 4, TypeScript, JWT, bcryptjs, Zod, Multer, Socket.IO, Swagger UI, Nodemailer</td><td>REST API, authentication, RBAC, validation, uploads, email, realtime events, reports, import/export.</td></tr>
+      <tr><td>Relational Database</td><td>MySQL 8 / XAMPP MySQL</td><td>Users, students, instructors, courses, classes, enrollments, attendance, assignments, submissions, refresh tokens.</td></tr>
+      <tr><td>Document Database</td><td>MongoDB 7 via Mongoose</td><td>Lessons, class days, notifications, applications, documents, certificates, Copilot data, CMS content, quiz sessions/attempts.</td></tr>
+      <tr><td>Storage</td><td>Local <code>uploads</code> folder, optional Cloudinary env placeholders</td><td>Student documents, submissions, CMS/Copilot assets.</td></tr>
+      <tr><td>External Services</td><td>SMTP, optional Groq/OpenAI-compatible API, optional Cloudinary</td><td>Email notifications/admissions; Copilot model provider; future object storage.</td></tr>
+    </table>
+
+    <h3>Architecture Diagram</h3>
+    <div class="diagram">
+      <svg viewBox="0 0 920 390" role="img" aria-label="EduCore architecture diagram">
+        <defs>
+          <marker id="arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto" markerUnits="strokeWidth">
+            <path d="M 0 0 L 10 4 L 0 8 z" fill="#5c6b82"></path>
+          </marker>
+          <style>
+            .box { fill: #ffffff; stroke: #d8e0ea; stroke-width: 2; rx: 10; }
+            .box2 { fill: #eef9f9; stroke: #147b83; stroke-width: 2; rx: 10; }
+            .box3 { fill: #fff7ed; stroke: #d98914; stroke-width: 2; rx: 10; }
+            .title { font: 700 16px Segoe UI, Arial; fill: #172033; }
+            .text { font: 12px Segoe UI, Arial; fill: #5c6b82; }
+            .line { stroke: #5c6b82; stroke-width: 2; marker-end: url(#arrow); fill: none; }
+          </style>
+        </defs>
+        <rect x="30" y="80" width="135" height="80" class="box2"></rect>
+        <text x="52" y="112" class="title">Users</text>
+        <text x="52" y="135" class="text">Applicants</text>
+        <text x="52" y="153" class="text">Admin, instructors, students</text>
+
+        <rect x="220" y="70" width="155" height="100" class="box"></rect>
+        <text x="244" y="103" class="title">Browser</text>
+        <text x="244" y="126" class="text">React portal</text>
+        <text x="244" y="144" class="text">Role-aware routes</text>
+
+        <rect x="430" y="55" width="190" height="130" class="box2"></rect>
+        <text x="462" y="90" class="title">Express API</text>
+        <text x="462" y="113" class="text">Auth, RBAC, validation</text>
+        <text x="462" y="131" class="text">Modules, uploads, reports</text>
+        <text x="462" y="149" class="text">Socket.IO events</text>
+
+        <rect x="700" y="25" width="150" height="70" class="box3"></rect>
+        <text x="728" y="55" class="title">MySQL</text>
+        <text x="728" y="76" class="text">Core records</text>
+
+        <rect x="700" y="115" width="150" height="70" class="box3"></rect>
+        <text x="724" y="145" class="title">MongoDB</text>
+        <text x="724" y="166" class="text">Flexible content</text>
+
+        <rect x="700" y="205" width="150" height="70" class="box"></rect>
+        <text x="728" y="235" class="title">Uploads</text>
+        <text x="728" y="256" class="text">Files/assets</text>
+
+        <rect x="430" y="255" width="190" height="75" class="box"></rect>
+        <text x="462" y="286" class="title">External Services</text>
+        <text x="462" y="308" class="text">SMTP, Groq/OpenAI, Cloudinary</text>
+
+        <path d="M 165 120 L 220 120" class="line"></path>
+        <path d="M 375 120 L 430 120" class="line"></path>
+        <path d="M 620 92 L 700 62" class="line"></path>
+        <path d="M 620 128 L 700 150" class="line"></path>
+        <path d="M 620 160 L 700 235" class="line"></path>
+        <path d="M 525 185 L 525 255" class="line"></path>
+        <path d="M 525 255 L 525 185" class="line"></path>
+      </svg>
+    </div>
+
+    <h3>Deployment Architecture</h3>
+    <p>
+      The repository includes Docker Compose services for MySQL, MongoDB, backend, and frontend. The frontend container serves the built React app through Nginx on port 5173. The backend container exposes port 4000 and depends on database services. Local development also supports XAMPP MySQL and a local MongoDB instance.
+    </p>
+    <div class="diagram">
+      <svg viewBox="0 0 920 250" role="img" aria-label="EduCore deployment diagram">
+        <style>
+          .d { fill: #ffffff; stroke: #d8e0ea; stroke-width: 2; rx: 10; }
+          .g { fill: #eef9f9; stroke: #147b83; stroke-width: 2; rx: 10; }
+          .o { fill: #fff7ed; stroke: #d98914; stroke-width: 2; rx: 10; }
+          .t { font: 700 15px Segoe UI, Arial; fill: #172033; }
+          .s { font: 12px Segoe UI, Arial; fill: #5c6b82; }
+          .a { stroke: #5c6b82; stroke-width: 2; marker-end: url(#arrow); fill: none; }
+        </style>
+        <rect x="35" y="70" width="135" height="70" class="d"></rect>
+        <text x="66" y="102" class="t">User</text>
+        <text x="66" y="123" class="s">Browser</text>
+        <rect x="230" y="50" width="150" height="110" class="g"></rect>
+        <text x="258" y="84" class="t">Frontend</text>
+        <text x="258" y="106" class="s">Nginx</text>
+        <text x="258" y="124" class="s">React build</text>
+        <text x="258" y="142" class="s">Port 5173</text>
+        <rect x="450" y="50" width="150" height="110" class="g"></rect>
+        <text x="482" y="84" class="t">Backend</text>
+        <text x="482" y="106" class="s">Node API</text>
+        <text x="482" y="124" class="s">Socket.IO</text>
+        <text x="482" y="142" class="s">Port 4000</text>
+        <rect x="670" y="28" width="145" height="70" class="o"></rect>
+        <text x="706" y="58" class="t">MySQL</text>
+        <text x="706" y="79" class="s">Port 3306</text>
+        <rect x="670" y="125" width="145" height="70" class="o"></rect>
+        <text x="699" y="155" class="t">MongoDB</text>
+        <text x="699" y="176" class="s">Port 27017</text>
+        <path d="M 170 105 L 230 105" class="a"></path>
+        <path d="M 380 105 L 450 105" class="a"></path>
+        <path d="M 600 85 L 670 63" class="a"></path>
+        <path d="M 600 125 L 670 160" class="a"></path>
+      </svg>
+    </div>
+
+    <h3>Architecture Decisions</h3>
+    <table class="compact">
+      <tr><th>Decision</th><th>Reason</th><th>Tradeoff</th></tr>
+      <tr><td>MySQL plus MongoDB</td><td>Relational records need constraints; content, applications, quiz and Copilot objects benefit from flexible schemas.</td><td>Two database engines increase backup and operational complexity.</td></tr>
+      <tr><td>JWT access plus refresh token table</td><td>Stateless access tokens with revocable refresh sessions.</td><td>Token storage must be hardened for production.</td></tr>
+      <tr><td>Socket.IO</td><td>Simple realtime events for notifications, submissions, and quiz updates.</td><td>Production scaling needs sticky sessions or adapter/backplane.</td></tr>
+      <tr><td>Local uploads</td><td>Simple MVP implementation for files.</td><td>Production should use object storage, antivirus scanning, and signed access.</td></tr>
+      <tr><td>Modular Express routes</td><td>Feature areas are discoverable and independently maintainable.</td><td>Service layer separation is partial; large route files should be decomposed later.</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">07</span>
+      <h2>Database Documentation</h2>
+    </div>
+    <h3>ERD Summary</h3>
+    <div class="diagram">
+      <svg viewBox="0 0 920 420" role="img" aria-label="EduCore ERD diagram">
+        <style>
+          .entity { fill: #ffffff; stroke: #d8e0ea; stroke-width: 2; rx: 8; }
+          .mongo { fill: #eef9f9; stroke: #147b83; stroke-width: 2; rx: 8; }
+          .et { font: 700 13px Segoe UI, Arial; fill: #172033; }
+          .ef { font: 10.5px Segoe UI, Arial; fill: #5c6b82; }
+          .rel { stroke: #64748b; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+        </style>
+        <rect x="30" y="30" width="130" height="82" class="entity"></rect>
+        <text x="48" y="55" class="et">users</text>
+        <text x="48" y="75" class="ef">id, email, role</text>
+        <text x="48" y="92" class="ef">status, password_hash</text>
+        <rect x="220" y="20" width="130" height="75" class="entity"></rect>
+        <text x="238" y="45" class="et">students</text>
+        <text x="238" y="65" class="ef">user_id, code</text>
+        <text x="238" y="82" class="ef">department, semester</text>
+        <rect x="220" y="115" width="130" height="75" class="entity"></rect>
+        <text x="238" y="140" class="et">instructors</text>
+        <text x="238" y="160" class="ef">user_id</text>
+        <text x="238" y="177" class="ef">specialization</text>
+        <rect x="410" y="100" width="130" height="75" class="entity"></rect>
+        <text x="428" y="125" class="et">courses</text>
+        <text x="428" y="145" class="ef">instructor_id</text>
+        <text x="428" y="162" class="ef">title, status</text>
+        <rect x="600" y="100" width="130" height="75" class="entity"></rect>
+        <text x="618" y="125" class="et">classes</text>
+        <text x="618" y="145" class="ef">course_id</text>
+        <text x="618" y="162" class="ef">room, schedule</text>
+        <rect x="410" y="215" width="130" height="75" class="entity"></rect>
+        <text x="428" y="240" class="et">enrollments</text>
+        <text x="428" y="260" class="ef">student_id</text>
+        <text x="428" y="277" class="ef">class_id, status</text>
+        <rect x="600" y="215" width="130" height="75" class="entity"></rect>
+        <text x="618" y="240" class="et">attendance</text>
+        <text x="618" y="260" class="ef">student, class, day</text>
+        <text x="618" y="277" class="ef">status, date</text>
+        <rect x="220" y="300" width="130" height="75" class="entity"></rect>
+        <text x="238" y="325" class="et">assignments</text>
+        <text x="238" y="345" class="ef">course/class/day</text>
+        <text x="238" y="362" class="ef">due_date, points</text>
+        <rect x="410" y="315" width="130" height="75" class="entity"></rect>
+        <text x="428" y="340" class="et">submissions</text>
+        <text x="428" y="360" class="ef">assignment_id</text>
+        <text x="428" y="377" class="ef">student_id, grade</text>
+        <rect x="30" y="205" width="130" height="75" class="entity"></rect>
+        <text x="48" y="230" class="et">refresh_tokens</text>
+        <text x="48" y="250" class="ef">user_id</text>
+        <text x="48" y="267" class="ef">token_hash</text>
+
+        <rect x="760" y="35" width="125" height="315" class="mongo"></rect>
+        <text x="778" y="62" class="et">MongoDB</text>
+        <text x="778" y="88" class="ef">CourseApplication</text>
+        <text x="778" y="108" class="ef">Lesson</text>
+        <text x="778" y="128" class="ef">ClassDay</text>
+        <text x="778" y="148" class="ef">Notification</text>
+        <text x="778" y="168" class="ef">ActivityLog</text>
+        <text x="778" y="188" class="ef">StudentDocument</text>
+        <text x="778" y="208" class="ef">Certificate</text>
+        <text x="778" y="228" class="ef">Copilot*</text>
+        <text x="778" y="248" class="ef">Announcement</text>
+        <text x="778" y="268" class="ef">CmsContent</text>
+        <text x="778" y="288" class="ef">Quiz*</text>
+
+        <path d="M 160 62 L 220 58" class="rel"></path>
+        <path d="M 160 87 L 220 145" class="rel"></path>
+        <path d="M 350 152 L 410 137" class="rel"></path>
+        <path d="M 540 137 L 600 137" class="rel"></path>
+        <path d="M 350 58 L 410 235" class="rel"></path>
+        <path d="M 600 175 L 540 235" class="rel"></path>
+        <path d="M 350 338 L 410 352" class="rel"></path>
+        <path d="M 350 70 L 410 350" class="rel"></path>
+        <path d="M 600 175 L 665 215" class="rel"></path>
+        <path d="M 350 70 L 600 250" class="rel"></path>
+        <path d="M 160 235 L 100 112" class="rel"></path>
+      </svg>
+    </div>
+
+    <h3>MySQL Table Documentation</h3>
+    <table class="compact">
+      <tr><th>Table</th><th>Primary Key</th><th>Important Fields</th><th>Relationships / Constraints</th></tr>
+      <tr><td>users</td><td>id CHAR(36)</td><td>full_name VARCHAR(120), email VARCHAR(160) UNIQUE, password_hash, role ENUM(admin,instructor,student), status ENUM(active,inactive), timestamps</td><td>Parent of students, instructors, refresh_tokens.</td></tr>
+      <tr><td>students</td><td>id CHAR(36)</td><td>user_id CHAR(36) UNIQUE, student_code VARCHAR(40) UNIQUE, department, semester, timestamps</td><td>FK users.id ON DELETE CASCADE. Parent of enrollments, attendance, submissions.</td></tr>
+      <tr><td>instructors</td><td>id CHAR(36)</td><td>user_id CHAR(36) UNIQUE, specialization, timestamps</td><td>FK users.id ON DELETE CASCADE. Parent of courses.</td></tr>
+      <tr><td>courses</td><td>id CHAR(36)</td><td>title, description, instructor_id, level, status ENUM(draft,published,archived), timestamps</td><td>FK instructors.id ON DELETE RESTRICT. Parent of classes and assignments.</td></tr>
+      <tr><td>classes</td><td>id CHAR(36)</td><td>course_id, room, schedule JSON, starts_at, ends_at, timestamps</td><td>FK courses.id ON DELETE CASCADE. Parent of enrollments and attendance.</td></tr>
+      <tr><td>enrollments</td><td>id CHAR(36)</td><td>student_id, class_id, status ENUM(active,completed,dropped), created_at</td><td>FK students.id and classes.id. Unique student_id + class_id.</td></tr>
+      <tr><td>attendance</td><td>id CHAR(36)</td><td>student_id, class_id, class_day_id, status ENUM(present,absent,late,excused), date, notes</td><td>FK students.id and classes.id. Unique student_id + class_id + class_day_id.</td></tr>
+      <tr><td>assignments</td><td>id CHAR(36)</td><td>course_id, class_id, class_day_id, title, description, due_date, points, timestamps</td><td>FK courses.id CASCADE and classes.id SET NULL.</td></tr>
+      <tr><td>submissions</td><td>id CHAR(36)</td><td>assignment_id, student_id, file_url, notes, grade DECIMAL(5,2), feedback, submitted_at, graded_at</td><td>FK assignments.id and students.id. Unique assignment_id + student_id.</td></tr>
+      <tr><td>refresh_tokens</td><td>id CHAR(36)</td><td>user_id, token_hash CHAR(64) UNIQUE, expires_at, revoked_at, created_at</td><td>FK users.id ON DELETE CASCADE. Stores hashed refresh tokens.</td></tr>
+    </table>
+
+    <h3>MongoDB Collection Documentation</h3>
+    <table class="compact">
+      <tr><th>Collection / Model</th><th>Purpose</th><th>Key Fields</th><th>Indexes / Notes</th></tr>
+      <tr><td>Lesson</td><td>Dynamic lessons.</td><td>courseId, title, content, blocks, assets, order, published.</td><td>courseId indexed.</td></tr>
+      <tr><td>ClassDay</td><td>Class-specific day content.</td><td>classId, courseId, dayNumber, title, content, blocks, assets, published, updatedBy.</td><td>Unique classId + dayNumber.</td></tr>
+      <tr><td>ClassBackup</td><td>Class content snapshots.</td><td>classId, title, days, createdBy.</td><td>classId indexed.</td></tr>
+      <tr><td>ClassComment</td><td>Instructor/admin class comments.</td><td>classId, message, authorId, authorName, authorRole, parentId.</td><td>Supports threaded comments.</td></tr>
+      <tr><td>Notification</td><td>Persisted notifications.</td><td>userId, role, title, message, type, metadata, readAt.</td><td>userId and role indexed.</td></tr>
+      <tr><td>ActivityLog</td><td>Audit/activity timeline.</td><td>userId, action, entity, entityId, metadata.</td><td>Used for seed/audit style records.</td></tr>
+      <tr><td>CourseApplication</td><td>Admissions applications.</td><td>fullName, email, courseId, courseTitle, status, stage, interviewAt, notes, enrolledClassId.</td><td>Email, courseId, status/stage indexed.</td></tr>
+      <tr><td>EmailLog</td><td>Email delivery records.</td><td>to, subject, category, status, providerMessageId, error, relatedEntity.</td><td>Useful for admissions timeline.</td></tr>
+      <tr><td>StudentDocument</td><td>Uploaded student documents.</td><td>studentId, userId, title, type, fileUrl, originalName, mimeType, size, status.</td><td>studentId, userId, type, status indexed.</td></tr>
+      <tr><td>Certificate</td><td>Issued certificates.</td><td>studentId, classId, courseId, finalGrade, verificationCode, status, issued/revoked metadata.</td><td>verificationCode unique.</td></tr>
+      <tr><td>CertificateTemplate</td><td>Certificate design data.</td><td>name, page, elements, updatedBy.</td><td>Stores editor snapshot.</td></tr>
+      <tr><td>CopilotThread</td><td>Copilot chat thread metadata.</td><td>userId, role, title, mode, lastMessageAt, archivedAt.</td><td>userId and role indexed.</td></tr>
+      <tr><td>CopilotMessage</td><td>Copilot chat messages.</td><td>threadId, userId, role, content, provider, citations, actions, metadata.</td><td>threadId + createdAt indexed.</td></tr>
+      <tr><td>CopilotDraft</td><td>AI-assisted draft workflow.</td><td>createdBy, approvedBy, type, title, content, status, targets.</td><td>Status/type indexed.</td></tr>
+      <tr><td>CopilotDocument</td><td>Uploaded Copilot reference documents.</td><td>uploadedBy, title, fileUrl, extractedText, visibility, targetRole, status.</td><td>Visibility/status indexed.</td></tr>
+      <tr><td>Announcement</td><td>Course/system announcements.</td><td>courseId, title, body, audience, publishedAt.</td><td>courseId indexed.</td></tr>
+      <tr><td>CmsContent</td><td>Editable pages.</td><td>slug, title, blocks, status, updatedBy.</td><td>slug unique.</td></tr>
+      <tr><td>QuizQuestion</td><td>Quiz question bank.</td><td>lessonId, classDayId, classId, courseId, prompt, type, options, correctAnswers.</td><td>Lesson/class indexes.</td></tr>
+      <tr><td>QuizSession</td><td>Live quiz session.</td><td>classId, courseId, dayId, status, questions, participants, startedBy, endedAt.</td><td>Status/class indexes.</td></tr>
+      <tr><td>QuizAttempt</td><td>Student quiz attempt.</td><td>sessionId, studentId, studentUserId, answers, score, total.</td><td>Unique sessionId + studentUserId.</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">08</span>
+      <h2>API Documentation</h2>
+    </div>
+    <p>
+      Base API URL: <code>http://localhost:4000/api</code>. Swagger UI is mounted at <code>http://localhost:4000/api/docs</code>. All non-auth protected APIs expect <code>Authorization: Bearer &lt;accessToken&gt;</code>. Public endpoints exist under <code>/api/public</code>. Health check is <code>GET /health</code>.
+    </p>
+    <h3>Common Responses</h3>
+    <table class="compact">
+      <tr><th>Status</th><th>Meaning</th><th>Example Body</th></tr>
+      <tr><td>200/201</td><td>Successful operation or created resource.</td><td><code>{ "data": [...] }</code> or entity JSON.</td></tr>
+      <tr><td>204</td><td>No content response for delete/no-body operations.</td><td>No body.</td></tr>
+      <tr><td>401</td><td>Missing, invalid, or expired access/refresh token.</td><td><code>{ "message": "Invalid or expired access token" }</code></td></tr>
+      <tr><td>403</td><td>User role is not allowed.</td><td><code>{ "message": "You do not have permission..." }</code></td></tr>
+      <tr><td>409</td><td>Duplicate key or conflict.</td><td><code>{ "message": "Duplicate record" }</code></td></tr>
+      <tr><td>422</td><td>Zod validation failure.</td><td><code>{ "message": "Validation failed", "errors": {...} }</code></td></tr>
+      <tr><td>500</td><td>Unhandled server error.</td><td><code>{ "message": "Internal server error" }</code></td></tr>
+    </table>
+
+    <h3>Endpoint Catalog</h3>
+    <table class="compact">
+      <tr><th>Group</th><th>Method / Endpoint</th><th>Roles</th><th>Description</th></tr>
+      <tr><td>Auth</td><td>POST /auth/register</td><td>Public</td><td>Register student user and profile.</td></tr>
+      <tr><td>Auth</td><td>POST /auth/login</td><td>Public</td><td>Authenticate with email/password.</td></tr>
+      <tr><td>Auth</td><td>POST /auth/refresh</td><td>Public</td><td>Rotate refresh token and issue access token.</td></tr>
+      <tr><td>Auth</td><td>POST /auth/logout</td><td>Public</td><td>Revoke refresh token.</td></tr>
+      <tr><td>Auth</td><td>GET /auth/me</td><td>Authenticated</td><td>Return current user.</td></tr>
+      <tr><td>Public</td><td>GET /public/courses</td><td>Public</td><td>List public courses.</td></tr>
+      <tr><td>Public</td><td>POST /public/course-applications</td><td>Public</td><td>Create course application.</td></tr>
+      <tr><td>Users</td><td>GET, POST /users</td><td>Admin</td><td>List/create users.</td></tr>
+      <tr><td>Users</td><td>PUT, DELETE /users/:id</td><td>Admin</td><td>Update/delete user.</td></tr>
+      <tr><td>Students</td><td>GET /students</td><td>Admin, instructor</td><td>List students.</td></tr>
+      <tr><td>Students</td><td>POST /students</td><td>Admin</td><td>Create student/user.</td></tr>
+      <tr><td>Students</td><td>GET /students/:id/history</td><td>Admin, instructor</td><td>Student timeline/history.</td></tr>
+      <tr><td>Students</td><td>PUT /students/:id</td><td>Admin</td><td>Update student and classes.</td></tr>
+      <tr><td>Students</td><td>POST /students/:id/reset-password</td><td>Admin</td><td>Reset student password.</td></tr>
+      <tr><td>Students</td><td>DELETE /students/:id</td><td>Admin</td><td>Delete student.</td></tr>
+      <tr><td>Instructors</td><td>GET /instructors</td><td>Admin, instructor</td><td>List instructors.</td></tr>
+      <tr><td>Instructors</td><td>POST /instructors</td><td>Admin</td><td>Create instructor/user.</td></tr>
+      <tr><td>Instructors</td><td>PUT /instructors/:id</td><td>Admin</td><td>Update instructor.</td></tr>
+      <tr><td>Instructors</td><td>POST /instructors/:id/reset-password</td><td>Admin</td><td>Reset instructor password.</td></tr>
+      <tr><td>Instructors</td><td>PUT /instructors/:id/class-assignment</td><td>Admin</td><td>Assign instructor to class.</td></tr>
+      <tr><td>Instructors</td><td>DELETE /instructors/:id</td><td>Admin</td><td>Delete instructor.</td></tr>
+      <tr><td>Applications</td><td>GET /course-applications</td><td>Admin</td><td>List admissions applications.</td></tr>
+      <tr><td>Applications</td><td>GET /course-applications/:id/timeline</td><td>Admin</td><td>Application email/audit timeline.</td></tr>
+      <tr><td>Applications</td><td>PATCH /course-applications/:id</td><td>Admin</td><td>Update application status/stage.</td></tr>
+      <tr><td>Applications</td><td>POST /course-applications/:id/enroll</td><td>Admin</td><td>Create student/enrollment from accepted application.</td></tr>
+      <tr><td>Courses</td><td>GET /courses</td><td>Authenticated</td><td>List visible courses.</td></tr>
+      <tr><td>Courses</td><td>POST, PUT, DELETE /courses</td><td>Admin</td><td>Create/update/delete courses.</td></tr>
+      <tr><td>Classes</td><td>GET /courses/classes/all</td><td>Authenticated</td><td>List classes visible by role.</td></tr>
+      <tr><td>Classes</td><td>GET, POST /courses/:id/classes</td><td>GET all auth, POST admin</td><td>List/create course classes.</td></tr>
+      <tr><td>Classes</td><td>PUT /courses/classes/:id</td><td>Admin, instructor</td><td>Update class.</td></tr>
+      <tr><td>Classes</td><td>GET /courses/classes/:id/students</td><td>Admin, instructor</td><td>Class roster.</td></tr>
+      <tr><td>Class Studio</td><td>GET /courses/classes/:id/days</td><td>Authenticated</td><td>Class days.</td></tr>
+      <tr><td>Class Studio</td><td>POST /courses/classes/:id/days</td><td>Admin, instructor</td><td>Create class day.</td></tr>
+      <tr><td>Class Studio</td><td>PUT /courses/classes/days/:dayId</td><td>Admin, instructor</td><td>Update class day.</td></tr>
+      <tr><td>Class Studio</td><td>GET, POST /courses/classes/:id/comments</td><td>Admin, instructor</td><td>Read/write class comments.</td></tr>
+      <tr><td>Class Studio</td><td>GET /courses/classes/:id/backups</td><td>Admin, instructor</td><td>List class backups.</td></tr>
+      <tr><td>Class Studio</td><td>POST /courses/classes/:id/backup</td><td>Admin, instructor</td><td>Create class backup.</td></tr>
+      <tr><td>Enrollment</td><td>POST /courses/classes/:id/enrollments</td><td>Admin</td><td>Enroll student.</td></tr>
+      <tr><td>Assignments</td><td>GET /assignments</td><td>Authenticated</td><td>List assignments by role.</td></tr>
+      <tr><td>Assignments</td><td>GET /assignments/class-health</td><td>Admin</td><td>Class assignment/grading health.</td></tr>
+      <tr><td>Assignments</td><td>POST /assignments/class-health/:id/notify-ungraded</td><td>Admin</td><td>Notify ungraded class.</td></tr>
+      <tr><td>Assignments</td><td>POST, PUT /assignments</td><td>Admin, instructor</td><td>Create/update assignments.</td></tr>
+      <tr><td>Assignments</td><td>DELETE /assignments/:id</td><td>Admin</td><td>Delete assignment.</td></tr>
+      <tr><td>Submissions</td><td>GET /assignments/submissions</td><td>Authenticated</td><td>List submissions by role.</td></tr>
+      <tr><td>Submissions</td><td>POST /assignments/submissions</td><td>Student, admin</td><td>Upload submission.</td></tr>
+      <tr><td>Submissions</td><td>PUT /assignments/submissions/:id/grade</td><td>Instructor</td><td>Grade submission.</td></tr>
+      <tr><td>Attendance</td><td>GET /attendance</td><td>Admin, instructor</td><td>List attendance records.</td></tr>
+      <tr><td>Attendance</td><td>GET /attendance/health</td><td>Admin, instructor</td><td>Attendance health by class.</td></tr>
+      <tr><td>Attendance</td><td>POST, PUT /attendance</td><td>Instructor</td><td>Create/update attendance.</td></tr>
+      <tr><td>Attendance</td><td>POST /attendance/bulk</td><td>Instructor</td><td>Bulk attendance save.</td></tr>
+      <tr><td>Attendance</td><td>GET /attendance/summary</td><td>Admin, instructor</td><td>Attendance summary.</td></tr>
+      <tr><td>Documents</td><td>GET /documents</td><td>Admin, student</td><td>List documents.</td></tr>
+      <tr><td>Documents</td><td>POST /documents</td><td>Admin, student</td><td>Upload document.</td></tr>
+      <tr><td>Documents</td><td>PATCH /documents/:id/review</td><td>Admin</td><td>Approve/reject document.</td></tr>
+      <tr><td>Gradebook</td><td>GET /gradebook</td><td>Admin, instructor, student</td><td>Gradebook rows.</td></tr>
+      <tr><td>Gradebook</td><td>GET /gradebook/certificates</td><td>Admin, instructor, student</td><td>List certificates by role.</td></tr>
+      <tr><td>Gradebook</td><td>GET, PUT /gradebook/certificate-template</td><td>GET all roles, PUT admin</td><td>Read/update certificate template.</td></tr>
+      <tr><td>Gradebook</td><td>POST /gradebook/certificates</td><td>Admin, instructor</td><td>Issue certificate.</td></tr>
+      <tr><td>Gradebook</td><td>PATCH /gradebook/certificates/:id/revoke</td><td>Admin</td><td>Revoke certificate.</td></tr>
+      <tr><td>Notifications</td><td>GET /notifications</td><td>Authenticated</td><td>List inbox notifications.</td></tr>
+      <tr><td>Notifications</td><td>POST /notifications</td><td>Admin, instructor</td><td>Send notification.</td></tr>
+      <tr><td>Notifications</td><td>PATCH /notifications/:id/read</td><td>Authenticated</td><td>Mark read.</td></tr>
+      <tr><td>Quizzes</td><td>GET /quizzes/questions</td><td>Admin, instructor</td><td>Question list.</td></tr>
+      <tr><td>Quizzes</td><td>POST /quizzes/generate</td><td>Admin, instructor</td><td>Generate questions.</td></tr>
+      <tr><td>Quizzes</td><td>GET /quizzes/sessions</td><td>Admin, instructor</td><td>List live quiz sessions.</td></tr>
+      <tr><td>Quizzes</td><td>POST /quizzes/start</td><td>Admin, instructor</td><td>Start quiz session.</td></tr>
+      <tr><td>Quizzes</td><td>GET /quizzes/student/available</td><td>Student</td><td>Available student sessions.</td></tr>
+      <tr><td>Quizzes</td><td>POST /quizzes/sessions/:id/accept</td><td>Student</td><td>Accept live quiz.</td></tr>
+      <tr><td>Quizzes</td><td>POST /quizzes/sessions/:id/submit</td><td>Student</td><td>Submit answers.</td></tr>
+      <tr><td>Quizzes</td><td>GET /quizzes/sessions/:id/results</td><td>Admin, instructor, student</td><td>Quiz results by role.</td></tr>
+      <tr><td>Quizzes</td><td>PATCH /quizzes/sessions/:id/close</td><td>Admin, instructor</td><td>Close session.</td></tr>
+      <tr><td>Reports</td><td>GET /reports/dashboard</td><td>Admin</td><td>Dashboard totals.</td></tr>
+      <tr><td>Reports</td><td>GET /reports/success-center</td><td>Admin, instructor</td><td>At-risk student list.</td></tr>
+      <tr><td>Reports</td><td>POST /reports/success-center/:id/interventions</td><td>Admin, instructor</td><td>Add intervention note.</td></tr>
+      <tr><td>Reports</td><td>GET /reports/instructor-dashboard</td><td>Instructor</td><td>Instructor dashboard.</td></tr>
+      <tr><td>Reports</td><td>GET /reports/attendance</td><td>Admin, instructor</td><td>Attendance report.</td></tr>
+      <tr><td>Reports</td><td>GET /reports/performance</td><td>Admin, instructor</td><td>Performance report.</td></tr>
+      <tr><td>Reports</td><td>GET /reports/class-analytics/:id</td><td>Admin, instructor</td><td>Class analytics.</td></tr>
+      <tr><td>Search</td><td>GET /search?q=term</td><td>Admin, instructor</td><td>Global search.</td></tr>
+      <tr><td>CMS</td><td>GET, POST /cms/lessons</td><td>GET authenticated, POST admin</td><td>Lesson list/create.</td></tr>
+      <tr><td>CMS</td><td>PUT /cms/lessons/:id</td><td>Admin</td><td>Update lesson.</td></tr>
+      <tr><td>CMS</td><td>POST /cms/assets</td><td>Admin, instructor</td><td>Upload CMS asset.</td></tr>
+      <tr><td>CMS</td><td>GET, POST /cms/announcements</td><td>GET authenticated, POST admin/instructor</td><td>Announcement list/create.</td></tr>
+      <tr><td>CMS</td><td>GET /cms/pages</td><td>Admin</td><td>List CMS pages.</td></tr>
+      <tr><td>CMS</td><td>PUT /cms/pages/:slug</td><td>Admin</td><td>Update page by slug.</td></tr>
+      <tr><td>CMS</td><td>GET, POST /cms/quiz-questions</td><td>GET authenticated, POST admin/instructor</td><td>Question bank.</td></tr>
+      <tr><td>Copilot</td><td>GET /copilot/context</td><td>Authenticated</td><td>Context for selected mode.</td></tr>
+      <tr><td>Copilot</td><td>GET /copilot/threads</td><td>Authenticated</td><td>User threads.</td></tr>
+      <tr><td>Copilot</td><td>GET /copilot/threads/:id/messages</td><td>Authenticated</td><td>Thread messages.</td></tr>
+      <tr><td>Copilot</td><td>POST /copilot/chat</td><td>Authenticated</td><td>Create assistant response.</td></tr>
+      <tr><td>Copilot</td><td>GET, POST /copilot/drafts</td><td>Authenticated</td><td>Draft list/create.</td></tr>
+      <tr><td>Copilot</td><td>PATCH /copilot/drafts/:id/status</td><td>Authenticated with role rules</td><td>Approve/reject draft.</td></tr>
+      <tr><td>Copilot</td><td>GET /copilot/documents</td><td>Authenticated</td><td>List visible Copilot documents.</td></tr>
+      <tr><td>Copilot</td><td>POST /copilot/documents</td><td>Admin, instructor</td><td>Upload Copilot document.</td></tr>
+      <tr><td>Copilot</td><td>GET /copilot/audit</td><td>Admin</td><td>Audit/draft overview.</td></tr>
+      <tr><td>Recommendations</td><td>GET /recommendations</td><td>Authenticated</td><td>Student recommendations.</td></tr>
+      <tr><td>Import/Export</td><td>GET /exports/:entity?format=csv|json|xlsx</td><td>Admin</td><td>Export students/instructors/courses/attendance/performance.</td></tr>
+      <tr><td>Import/Export</td><td>POST /imports/students</td><td>Admin</td><td>Import student file.</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">09</span>
+      <h2>UI/UX Documentation</h2>
+    </div>
+    <h3>User Flows</h3>
+    <table class="compact">
+      <tr><th>Flow</th><th>Steps</th><th>Outcome</th></tr>
+      <tr><td>Visitor Admission</td><td>Public home -> Browse courses -> Application form -> Submit -> Admin review.</td><td>Application record available in Admissions.</td></tr>
+      <tr><td>Admin Operations</td><td>Login -> Dashboard -> Students/Instructors/Courses -> Reports/CMS/Applications.</td><td>Institutional data is managed from one portal.</td></tr>
+      <tr><td>Instructor Teaching</td><td>Login -> Teaching dashboard -> Class Studio -> Assignments/Attendance/Quizzes -> Success Center.</td><td>Class delivery and student support are handled by instructor.</td></tr>
+      <tr><td>Student Learning</td><td>Login -> Home -> Lessons/Work/Quizzes/Documents/Gradebook/Inbox.</td><td>Student sees coursework, submissions, notifications, and results.</td></tr>
+      <tr><td>Document Review</td><td>Student uploads -> Admin views pending -> Approve/reject -> Student sees status.</td><td>Document lifecycle is tracked.</td></tr>
+      <tr><td>Live Quiz</td><td>Instructor starts -> Student notified -> Student accepts/submits -> Instructor reviews results.</td><td>Realtime assessment session is recorded.</td></tr>
+    </table>
+
+    <h3>Wireframes</h3>
+    <div class="grid-3">
+      <div class="wire">
+        <div class="wire-title">Public Home</div>
+        <div class="bar mid"></div>
+        <div class="bar"></div>
+        <div class="bar short"></div>
+        <p class="small">Course cards and application form.</p>
+      </div>
+      <div class="wire">
+        <div class="wire-title">Login</div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar short"></div>
+        <p class="small">Email, password, submit.</p>
+      </div>
+      <div class="wire">
+        <div class="wire-title">Admin Dashboard</div>
+        <div class="bar mid"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <p class="small">Stats, charts, activity.</p>
+      </div>
+      <div class="wire">
+        <div class="wire-title">Students</div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <div class="bar"></div>
+        <p class="small">Search, form, table, classes.</p>
+      </div>
+      <div class="wire">
+        <div class="wire-title">Class Studio</div>
+        <div class="bar mid"></div>
+        <div class="bar"></div>
+        <div class="bar short"></div>
+        <p class="small">Class day editor and grading.</p>
+      </div>
+      <div class="wire">
+        <div class="wire-title">Student Home</div>
+        <div class="bar short"></div>
+        <div class="bar"></div>
+        <div class="bar mid"></div>
+        <p class="small">Courses, work, notifications.</p>
+      </div>
+    </div>
+
+    <h3>Design System</h3>
+    <table class="compact">
+      <tr><th>Element</th><th>Current Design</th><th>Guideline</th></tr>
+      <tr><td>Colors</td><td>Primary teal <code>hsl(184 70% 32%)</code>, accent amber <code>hsl(38 92% 56%)</code>, success green, danger red, muted slate background.</td><td>Keep role workflows consistent; avoid adding unrelated color themes.</td></tr>
+      <tr><td>Typography</td><td>System UI stack with Inter-style fallback.</td><td>Use concise labels, compact dashboard headings, and readable table text.</td></tr>
+      <tr><td>Spacing</td><td>Tailwind spacing with cards, section headers, tables, and responsive layout.</td><td>Keep dense admin pages scannable; avoid oversized marketing sections inside portal.</td></tr>
+      <tr><td>Buttons</td><td>Shared Button component with variants; Lucide icons in navigation/actions.</td><td>Use icons for common actions and text labels for destructive or business-critical commands.</td></tr>
+      <tr><td>Forms</td><td>React Hook Form/Zod patterns in pages.</td><td>Show validation errors near fields; keep required fields clear.</td></tr>
+      <tr><td>Tables</td><td>Shared table components for lists.</td><td>Support pagination/search for large datasets.</td></tr>
+      <tr><td>Cards</td><td>Used for stats, grouped forms, and content panels.</td><td>Keep cards focused on repeated records or tool panels.</td></tr>
+      <tr><td>Icons</td><td>Lucide icons in AppShell and controls.</td><td>Use accessible titles/tooltips where icon meaning is not obvious.</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">10</span>
+      <h2>Security Documentation</h2>
+    </div>
+    <h3>Authentication</h3>
+    <p>
+      EduCore uses JWT access tokens signed with <code>JWT_ACCESS_SECRET</code> and refresh tokens generated with cryptographic random bytes. Refresh tokens are stored as SHA-256 hashes in MySQL and rotated on refresh. Passwords are hashed with bcrypt cost 12.
+    </p>
+
+    <h3>Authorization</h3>
+    <table class="compact">
+      <tr><th>Role</th><th>Primary Permissions</th></tr>
+      <tr><td>Admin</td><td>Full operational management, users, admissions, courses/classes, documents, CMS, reports, imports/exports, certificate template and revocation, Copilot audit.</td></tr>
+      <tr><td>Instructor</td><td>Teaching dashboard, assigned students/classes, Class Studio, assignments, grading, attendance, quizzes, notifications, success center, reports by role.</td></tr>
+      <tr><td>Student</td><td>Student home, lessons, work submissions, quizzes, documents, gradebook/certificates, inbox, recommendations, Copilot.</td></tr>
+      <tr><td>Public</td><td>Public course list and course application submission only.</td></tr>
+    </table>
+
+    <h3>Security Controls Present</h3>
+    <ul>
+      <li><strong>Helmet:</strong> default HTTP security headers.</li>
+      <li><strong>CORS:</strong> restricted to configured <code>CLIENT_URL</code>.</li>
+      <li><strong>Rate limiting:</strong> 240 requests per minute per limiter context in <code>app.ts</code>.</li>
+      <li><strong>Input validation:</strong> Zod validation middleware for many write endpoints.</li>
+      <li><strong>Password hashing:</strong> bcrypt hashes, never plain text storage.</li>
+      <li><strong>Refresh token hashing:</strong> database stores token hashes, not raw refresh tokens.</li>
+      <li><strong>Upload file size limit:</strong> Multer capped at 10 MB and sanitizes filenames.</li>
+      <li><strong>Database constraints:</strong> unique email, student code, enrollment, submission, and token hash constraints.</li>
+      <li><strong>Error handling:</strong> structured validation and application errors, duplicate handling, generic 500 message.</li>
+    </ul>
+
+    <h3>Security Review Findings</h3>
+    <table class="compact">
+      <tr><th>Risk</th><th>Severity</th><th>Observation</th><th>Mitigation</th></tr>
+      <tr><td>Exposed secret in repository note</td><td>High</td><td>A probable external API key appears in a plain text project note. The key is not reproduced here.</td><td>Immediately rotate/revoke the key, remove it from repository history, add secret scanning, and store secrets only in environment variables.</td></tr>
+      <tr><td>Development JWT defaults</td><td>High</td><td>Environment schema includes development fallback JWT secrets.</td><td>Fail startup in production if strong secrets are missing; never use defaults in production.</td></tr>
+      <tr><td>Token storage in localStorage</td><td>Medium</td><td>Frontend stores access and refresh tokens in localStorage.</td><td>Move refresh token to HttpOnly Secure SameSite cookie or harden XSS protections and token lifetime.</td></tr>
+      <tr><td>Upload validation</td><td>Medium</td><td>File uploads limit size and sanitize names, but no MIME allowlist/virus scanning is documented.</td><td>Add MIME/content validation, antivirus scanning, object storage, and signed file access.</td></tr>
+      <tr><td>Audit coverage</td><td>Medium</td><td>Activity logs exist, but not every write path is guaranteed to create audit entries.</td><td>Centralize audit logging for sensitive actions: login, role changes, grade changes, document review, certificate issue/revoke.</td></tr>
+      <tr><td>Swagger schema completeness</td><td>Low</td><td>OpenAPI currently lists many endpoints but has limited request/response schemas.</td><td>Expand OpenAPI components and examples for all endpoints.</td></tr>
+      <tr><td>Transport security</td><td>High in production</td><td>Local URLs use HTTP for development.</td><td>Use HTTPS/TLS in staging and production; secure cookies and HSTS.</td></tr>
+    </table>
+
+    <h3>Security Requirements For Production</h3>
+    <ul>
+      <li>Enable dependency audit and secret scanning in CI.</li>
+      <li>Configure strong secrets, SMTP credentials, and AI provider keys only in secure environment storage.</li>
+      <li>Use HTTPS and secure cookie/session strategy.</li>
+      <li>Limit admin access by least privilege and enforce strong password policy or SSO/MFA.</li>
+      <li>Encrypt backups and restrict file/object storage access.</li>
+      <li>Run penetration testing for auth, RBAC, file upload, IDOR, XSS, CSRF, and injection risk.</li>
+    </ul>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">11</span>
+      <h2>Testing Documentation</h2>
+    </div>
+    <div class="note success">
+      <strong>Current verification:</strong> <code>npm run typecheck</code> completed successfully for both backend and frontend during this review.
+    </div>
+    <div class="note warning">
+      <strong>Current gap:</strong> No automated unit, integration, API, E2E, performance, or security test suite was found in the repository. Testing below is the recommended plan and initial test case catalog.
+    </div>
+
+    <h3>Test Plan</h3>
+    <table class="compact">
+      <tr><th>Type</th><th>Scope</th><th>Recommended Tools</th></tr>
+      <tr><td>Unit</td><td>Auth service, token hashing, validation helpers, pagination, report calculations, recommendation logic.</td><td>Vitest/Jest.</td></tr>
+      <tr><td>Integration</td><td>Route handlers with MySQL/Mongo test databases, RBAC, uploads, import/export.</td><td>Supertest, Testcontainers or Docker Compose test DBs.</td></tr>
+      <tr><td>API</td><td>OpenAPI examples and endpoint contract checks.</td><td>Postman/Newman or Schemathesis.</td></tr>
+      <tr><td>E2E</td><td>Public application, login, admin CRUD, instructor class studio, student submission, quiz flow.</td><td>Playwright.</td></tr>
+      <tr><td>Performance</td><td>Dashboard, list endpoints, search, reports, uploads.</td><td>k6, Artillery, Lighthouse.</td></tr>
+      <tr><td>Security</td><td>Auth, RBAC, IDOR, upload, dependency audit, secret scanning.</td><td>npm audit, gitleaks, OWASP ZAP.</td></tr>
+    </table>
+
+    <h3>Test Cases</h3>
+    <table class="compact">
+      <tr><th>ID</th><th>Scenario</th><th>Expected Result</th></tr>
+      <tr><td>TC-001</td><td>Login with valid admin credentials.</td><td>Returns user, access token, refresh token; admin portal opens.</td></tr>
+      <tr><td>TC-002</td><td>Login with invalid password.</td><td>Returns 401 and no tokens.</td></tr>
+      <tr><td>TC-003</td><td>Refresh token rotation.</td><td>Old token revoked; new token pair issued.</td></tr>
+      <tr><td>TC-004</td><td>Student attempts admin-only user list.</td><td>Returns 403.</td></tr>
+      <tr><td>TC-005</td><td>Create student with duplicate email.</td><td>Returns 409 duplicate record.</td></tr>
+      <tr><td>TC-006</td><td>Create course and class.</td><td>Course/class stored and visible in classes list.</td></tr>
+      <tr><td>TC-007</td><td>Enroll same student twice in same class.</td><td>Second enrollment rejected by unique constraint.</td></tr>
+      <tr><td>TC-008</td><td>Create class day and publish.</td><td>Class day appears to enrolled student content flow.</td></tr>
+      <tr><td>TC-009</td><td>Upload submission file under 10 MB.</td><td>Submission is stored with file URL.</td></tr>
+      <tr><td>TC-010</td><td>Upload submission file over 10 MB.</td><td>Upload fails.</td></tr>
+      <tr><td>TC-011</td><td>Grade submission.</td><td>Grade and feedback persist; gradebook updates.</td></tr>
+      <tr><td>TC-012</td><td>Bulk attendance save.</td><td>One attendance record per selected student/day is created or updated.</td></tr>
+      <tr><td>TC-013</td><td>Student document review.</td><td>Admin status change updates student-visible document state.</td></tr>
+      <tr><td>TC-014</td><td>Send notification to role.</td><td>Notification persists and matching socket room receives event.</td></tr>
+      <tr><td>TC-015</td><td>Start quiz and student submits.</td><td>Attempt score is calculated and results are visible by role.</td></tr>
+      <tr><td>TC-016</td><td>Issue certificate for eligible student.</td><td>Certificate has unique verification code.</td></tr>
+      <tr><td>TC-017</td><td>Global search with valid query.</td><td>Grouped results return across available entities.</td></tr>
+      <tr><td>TC-018</td><td>Export students as CSV.</td><td>CSV response downloads with expected columns.</td></tr>
+      <tr><td>TC-019</td><td>Import invalid student sheet.</td><td>Invalid rows are rejected or reported.</td></tr>
+      <tr><td>TC-020</td><td>Production startup without secrets.</td><td>Application fails safe rather than using dev defaults.</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">12</span>
+      <h2>DevOps Documentation</h2>
+    </div>
+    <h3>Current DevOps Assets</h3>
+    <ul>
+      <li><code>docker-compose.yml</code> defines MySQL, MongoDB, backend, and frontend services.</li>
+      <li>Backend and frontend each include Dockerfiles.</li>
+      <li>Root npm workspace scripts support <code>dev</code>, <code>build</code>, <code>typecheck</code>, and <code>seed</code>.</li>
+      <li>Backend exposes <code>GET /health</code> for basic service health.</li>
+    </ul>
+
+    <h3>Recommended CI/CD Pipeline</h3>
+    <div class="diagram">
+      <svg viewBox="0 0 920 150" role="img" aria-label="CI/CD pipeline diagram">
+        <style>
+          .p { fill: #ffffff; stroke: #d8e0ea; stroke-width: 2; rx: 10; }
+          .pt { font: 700 13px Segoe UI, Arial; fill: #172033; }
+          .ps { font: 11px Segoe UI, Arial; fill: #5c6b82; }
+          .pa { stroke: #5c6b82; stroke-width: 2; marker-end: url(#arrow); fill: none; }
+        </style>
+        <rect x="20" y="42" width="110" height="65" class="p"></rect><text x="47" y="68" class="pt">Developer</text><text x="44" y="90" class="ps">Commit/PR</text>
+        <rect x="160" y="42" width="110" height="65" class="p"></rect><text x="195" y="68" class="pt">GitHub</text><text x="184" y="90" class="ps">Branch checks</text>
+        <rect x="300" y="42" width="110" height="65" class="p"></rect><text x="335" y="68" class="pt">Install</text><text x="325" y="90" class="ps">npm ci</text>
+        <rect x="440" y="42" width="110" height="65" class="p"></rect><text x="473" y="68" class="pt">Quality</text><text x="466" y="90" class="ps">lint, tests</text>
+        <rect x="580" y="42" width="110" height="65" class="p"></rect><text x="620" y="68" class="pt">Build</text><text x="607" y="90" class="ps">backend/frontend</text>
+        <rect x="720" y="42" width="110" height="65" class="p"></rect><text x="749" y="68" class="pt">Deploy</text><text x="741" y="90" class="ps">staging/prod</text>
+        <path d="M 130 75 L 160 75" class="pa"></path><path d="M 270 75 L 300 75" class="pa"></path><path d="M 410 75 L 440 75" class="pa"></path><path d="M 550 75 L 580 75" class="pa"></path><path d="M 690 75 L 720 75" class="pa"></path>
+      </svg>
+    </div>
+
+    <h3>Environments</h3>
+    <table class="compact">
+      <tr><th>Environment</th><th>Purpose</th><th>Data</th><th>Controls</th></tr>
+      <tr><td>Development</td><td>Local implementation and demo work.</td><td>Seed/demo data.</td><td>Local secrets, hot reload.</td></tr>
+      <tr><td>Testing</td><td>Automated unit/integration/E2E tests.</td><td>Disposable test data.</td><td>Reset DB per test run.</td></tr>
+      <tr><td>Staging</td><td>Production-like acceptance testing.</td><td>Masked or synthetic data.</td><td>HTTPS, monitoring, backups.</td></tr>
+      <tr><td>Production</td><td>Live use.</td><td>Real academic/user data.</td><td>Least privilege, backups, audit, alerting, incident response.</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">13</span>
+      <h2>Deployment Guide</h2>
+    </div>
+    <h3>Server Requirements</h3>
+    <table class="compact">
+      <tr><th>Component</th><th>MVP Minimum</th><th>Production Recommendation</th></tr>
+      <tr><td>CPU</td><td>2 cores</td><td>4+ cores or horizontally scalable containers.</td></tr>
+      <tr><td>RAM</td><td>4 GB for full stack locally.</td><td>8+ GB split across app/database services.</td></tr>
+      <tr><td>Storage</td><td>20 GB for code, dependencies, local DB and uploads.</td><td>Managed database storage plus object storage and backups.</td></tr>
+      <tr><td>OS</td><td>Windows with XAMPP or Linux with Docker.</td><td>Linux container host or managed app platform.</td></tr>
+      <tr><td>Runtime</td><td>Node.js compatible with project dependencies.</td><td>Pinned Node LTS version in CI and containers.</td></tr>
+      <tr><td>Databases</td><td>MySQL 8 and MongoDB 7.</td><td>Managed MySQL/MongoDB with automated backups.</td></tr>
+    </table>
+
+    <h3>Local Installation Steps</h3>
+    <pre>1. Copy .env.example to backend/.env and set real secrets.
+2. Create MySQL schema:
+   mysql -h 127.0.0.1 -P 3306 -u root &lt; backend/database/schema.sql
+3. Install dependencies:
+   npm install
+4. Seed demo data:
+   npm run seed
+5. Run full stack:
+   npm run dev
+6. Open frontend:
+   http://localhost:5173
+7. Open API docs:
+   http://localhost:4000/api/docs</pre>
+
+    <h3>Docker Deployment Steps</h3>
+    <pre>1. Create backend/.env from .env.example.
+2. Replace all production secrets and database credentials.
+3. Run:
+   docker compose up --build
+4. Verify:
+   http://localhost:5173
+   http://localhost:4000/health
+   http://localhost:4000/api/docs</pre>
+
+    <h3>Environment Variables</h3>
+    <table class="compact">
+      <tr><th>Variable</th><th>Purpose</th></tr>
+      <tr><td>NODE_ENV, PORT, CLIENT_URL</td><td>Runtime environment, API port, allowed frontend origin.</td></tr>
+      <tr><td>JWT_ACCESS_SECRET, JWT_REFRESH_SECRET</td><td>JWT signing secrets. Must be strong in production.</td></tr>
+      <tr><td>JWT_ACCESS_EXPIRES_IN, JWT_REFRESH_EXPIRES_IN</td><td>Token lifetime configuration.</td></tr>
+      <tr><td>UPLOAD_DIR</td><td>Local file upload path.</td></tr>
+      <tr><td>DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME</td><td>MySQL connection.</td></tr>
+      <tr><td>MONGO_URI</td><td>MongoDB connection.</td></tr>
+      <tr><td>GROQ_API_KEY, GROQ_MODEL, GROQ_BASE_URL</td><td>Optional Groq-compatible AI provider.</td></tr>
+      <tr><td>OPENAI_API_KEY, OPENAI_MODEL, OPENAI_BASE_URL</td><td>Optional OpenAI-compatible AI provider.</td></tr>
+      <tr><td>SMTP_HOST, SMTP_PORT, SMTP_SECURE, SMTP_USER, SMTP_PASS, MAIL_FROM</td><td>Email delivery.</td></tr>
+      <tr><td>CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET</td><td>Future/optional file storage integration.</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">14</span>
+      <h2>Maintenance Documentation</h2>
+    </div>
+    <h3>Monitoring</h3>
+    <table class="compact">
+      <tr><th>Area</th><th>Current State</th><th>Recommended Tooling</th></tr>
+      <tr><td>Application health</td><td><code>/health</code> returns service OK.</td><td>Uptime checks and container health probes.</td></tr>
+      <tr><td>Application logs</td><td>Morgan request logging and console errors.</td><td>Structured JSON logs shipped to Loki/ELK/CloudWatch.</td></tr>
+      <tr><td>Error tracking</td><td>No dedicated tracker in repo.</td><td>Sentry or equivalent with source maps.</td></tr>
+      <tr><td>Metrics</td><td>No metrics endpoint in repo.</td><td>Prometheus + Grafana or platform metrics.</td></tr>
+      <tr><td>Analytics</td><td>Reports exist from app data.</td><td>Add product analytics for adoption and usage.</td></tr>
+    </table>
+
+    <h3>Backup Strategy</h3>
+    <ul>
+      <li><strong>MySQL:</strong> nightly logical dump, transaction-safe backup where available, 30-day retention, encrypted storage.</li>
+      <li><strong>MongoDB:</strong> nightly <code>mongodump</code> or managed snapshots, 30-day retention, encrypted storage.</li>
+      <li><strong>Uploads:</strong> object storage versioning or filesystem snapshot; include submissions, documents, CMS/Copilot assets.</li>
+      <li><strong>Restore tests:</strong> monthly restore drill into staging environment.</li>
+    </ul>
+
+    <h3>Disaster Recovery</h3>
+    <table class="compact">
+      <tr><th>Scenario</th><th>Impact</th><th>Recovery Action</th><th>Target</th></tr>
+      <tr><td>Backend container failure</td><td>API unavailable.</td><td>Restart service; inspect logs; redeploy last stable image.</td><td>RTO 30 minutes.</td></tr>
+      <tr><td>MySQL failure</td><td>Core records unavailable.</td><td>Restore latest backup or promote managed replica.</td><td>RTO 4 hours, RPO 24 hours unless upgraded.</td></tr>
+      <tr><td>MongoDB failure</td><td>Content, notifications, quizzes, documents metadata unavailable.</td><td>Restore snapshot/dump.</td><td>RTO 4 hours, RPO 24 hours unless upgraded.</td></tr>
+      <tr><td>Secret leak</td><td>Credential compromise risk.</td><td>Revoke/rotate, audit access, purge history, redeploy.</td><td>Immediate response.</td></tr>
+      <tr><td>File storage loss</td><td>Uploads unavailable.</td><td>Restore from object storage versioning or filesystem snapshot.</td><td>RTO 4-8 hours.</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">15</span>
+      <h2>Project Management Documentation</h2>
+    </div>
+    <h3>Roadmap</h3>
+    <table class="compact">
+      <tr><th>Phase</th><th>Scope</th><th>Exit Criteria</th></tr>
+      <tr><td>Phase 1 - MVP</td><td>Auth, RBAC, student/instructor/course/class records, assignments, attendance, reports, documents, CMS basics, notifications, seed data, Docker, Swagger.</td><td>Demo users complete core workflows; typecheck and core tests pass.</td></tr>
+      <tr><td>Phase 2 - Advanced Operations</td><td>Admissions automation, class analytics, success center, live quizzes, certificate designer, stronger import/export, audit logging, better OpenAPI.</td><td>Role workflows are test-covered and ready for staging pilot.</td></tr>
+      <tr><td>Phase 3 - AI and Personalization</td><td>Copilot provider hardening, recommendation rules, draft approvals, knowledge documents, student support automation.</td><td>AI outputs are auditable, approved where needed, and privacy reviewed.</td></tr>
+      <tr><td>Phase 4 - Production Hardening</td><td>CI/CD, tests, security scan, secret rotation, backups, monitoring, object storage, HTTPS, runbooks.</td><td>Production readiness checklist signed off.</td></tr>
+    </table>
+
+    <h3>Risk Register</h3>
+    <table class="compact">
+      <tr><th>Risk</th><th>Impact</th><th>Probability</th><th>Mitigation</th></tr>
+      <tr><td>Exposed credentials</td><td>High</td><td>Medium</td><td>Rotate exposed key, add secret scanning, remove secrets from repo/history.</td></tr>
+      <tr><td>No automated tests</td><td>High</td><td>High</td><td>Add unit, integration, API, and E2E suites before production.</td></tr>
+      <tr><td>Data loss</td><td>High</td><td>Medium</td><td>Automated backups and restore drills for MySQL, MongoDB, uploads.</td></tr>
+      <tr><td>RBAC gaps</td><td>High</td><td>Medium</td><td>Route-level authorization tests and IDOR testing.</td></tr>
+      <tr><td>File upload abuse</td><td>Medium</td><td>Medium</td><td>MIME validation, AV scanning, object storage, size/type policies.</td></tr>
+      <tr><td>Realtime scaling limitations</td><td>Medium</td><td>Low initially</td><td>Use Socket.IO adapter/backplane for multi-instance production.</td></tr>
+      <tr><td>Scope creep</td><td>Medium</td><td>High</td><td>Freeze MVP, use backlog priorities, defer non-critical integrations.</td></tr>
+      <tr><td>Deployment drift</td><td>Medium</td><td>Medium</td><td>Use container images, pinned envs, CI/CD and IaC.</td></tr>
+    </table>
+
+    <h3>Sprint Plan</h3>
+    <ol>
+      <li>Setup: repository, frontend/backend TypeScript, MySQL, MongoDB, Docker, schema, seed.</li>
+      <li>Authentication: register, login, refresh, logout, JWT middleware, RBAC, protected frontend routes.</li>
+      <li>DMS: students, instructors, classes, schedules, attendance, analytics.</li>
+      <li>LMS: courses, lessons, assignments, submissions, grading, progress.</li>
+      <li>Advanced features: realtime notifications, search, import/export, CMS, recommendations.</li>
+      <li>Finalization: responsive UI, Swagger, seed data, testing, bug fixing, presentation/report.</li>
+    </ol>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">16</span>
+      <h2>Change Log</h2>
+    </div>
+    <table class="compact">
+      <tr><th>Version</th><th>Date</th><th>Changes</th><th>Status</th></tr>
+      <tr><td>0.1</td><td>Planning</td><td>Project master plan, initial scope, documentation structure.</td><td>Completed</td></tr>
+      <tr><td>0.3</td><td>Foundation</td><td>Monorepo, React frontend, Express backend, TypeScript, Tailwind, Docker, environment template.</td><td>Completed</td></tr>
+      <tr><td>0.5</td><td>Authentication</td><td>JWT auth, refresh tokens, RBAC middleware, protected frontend routes.</td><td>Completed</td></tr>
+      <tr><td>0.7</td><td>DMS/LMS Core</td><td>Users, students, instructors, courses, classes, enrollments, assignments, submissions, attendance, gradebook.</td><td>Completed</td></tr>
+      <tr><td>0.9</td><td>Advanced Features</td><td>Applications, documents, certificates, CMS, announcements, quizzes, notifications, reports, search, import/export, Copilot.</td><td>Completed/MVP</td></tr>
+      <tr><td>1.0</td><td>May 26, 2026</td><td>Enterprise documentation PDF generated from code review; typecheck passed; security/testing gaps documented.</td><td>Review Draft</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">17</span>
+      <h2>User Documentation</h2>
+    </div>
+    <h3>User Guide</h3>
+    <table class="compact">
+      <tr><th>User</th><th>How To Use EduCore</th></tr>
+      <tr><td>Visitor / Applicant</td><td>Open the public homepage, review courses, fill in the application form, and wait for admissions review.</td></tr>
+      <tr><td>Student</td><td>Login with student account, use Home for current classes and notifications, open Lessons for class content, Work for assignments/submissions, Quizzes for live quizzes, Documents for uploads, Gradebook for results/certificates, and Inbox for messages.</td></tr>
+      <tr><td>Instructor</td><td>Login and use Teaching for summary, Class Studio for class-day content and grading, Assignments for assignment health, Attendance for roster status, Quizzes for live sessions, Success Center for interventions, Notifications for messages, and Search for records.</td></tr>
+      <tr><td>Admin</td><td>Login and use Dashboard, Students, Instructors, Applications, Courses, Documents, Gradebook, CMS, Reports, Notifications, Search, imports, and exports to manage the institution.</td></tr>
+    </table>
+
+    <h3>Admin Guide</h3>
+    <ol>
+      <li>Seed or create admin account.</li>
+      <li>Create instructors and reset credentials as needed.</li>
+      <li>Create students or enroll applicants after approval.</li>
+      <li>Create courses and classes with schedules.</li>
+      <li>Enroll students into classes.</li>
+      <li>Review uploaded documents and update statuses.</li>
+      <li>Configure CMS pages, lessons, announcements, quiz questions, and certificate template.</li>
+      <li>Monitor dashboard, reports, success center, and exports.</li>
+    </ol>
+
+    <h3>FAQ</h3>
+    <table class="compact">
+      <tr><th>Question</th><th>Answer</th></tr>
+      <tr><td>Where are default demo accounts?</td><td>The README lists admin, instructor, and student demo accounts created by <code>npm run seed</code>.</td></tr>
+      <tr><td>Where is the API documentation?</td><td>Run the backend and open <code>http://localhost:4000/api/docs</code>.</td></tr>
+      <tr><td>Can students create courses?</td><td>No. Course creation is admin-only in the current backend.</td></tr>
+      <tr><td>Can instructors grade submissions?</td><td>Yes, through assignment submission grading routes and related UI.</td></tr>
+      <tr><td>Where are files stored?</td><td>Currently local upload folders. Production should move to managed object storage.</td></tr>
+      <tr><td>Does the project have automated tests?</td><td>No automated test suite was found during this review. TypeScript typecheck passes.</td></tr>
+    </table>
+  </section>
+
+  <section class="section">
+    <div class="section-title">
+      <span class="section-number">18</span>
+      <h2>Technical Documentation Structure</h2>
+    </div>
+    <p>
+      Recommended enterprise documentation layout for this project:
+    </p>
+    <pre>/docs
+|-- 01_Project_Charter
+|   |-- Project_Charter.md
+|-- 02_Business_Requirements
+|   |-- BRD.md
+|-- 03_Software_Requirements
+|   |-- SRS.md
+|-- 04_User_Stories
+|   |-- User_Stories.md
+|-- 05_Use_Cases
+|   |-- Use_Cases.md
+|-- 06_Architecture
+|   |-- System_Architecture.md
+|   |-- Infrastructure.md
+|   |-- Deployment_Architecture.md
+|-- 07_Database
+|   |-- ERD.md
+|   |-- Tables.md
+|   |-- Mongo_Collections.md
+|-- 08_API
+|   |-- OpenAPI.yaml
+|   |-- Postman_Collection.json
+|   |-- Endpoint_Catalog.md
+|-- 09_UI_UX
+|   |-- User_Flows.md
+|   |-- Wireframes.md
+|   |-- Design_System.md
+|-- 10_Security
+|   |-- Security_Architecture.md
+|   |-- Threat_Model.md
+|-- 11_Testing
+|   |-- Test_Plan.md
+|   |-- Test_Cases.md
+|-- 12_DevOps
+|   |-- CI_CD.md
+|   |-- Environments.md
+|-- 13_Deployment
+|   |-- Deployment_Guide.md
+|-- 14_Maintenance
+|   |-- Monitoring.md
+|   |-- Backup_And_Recovery.md
+|-- 15_Project_Management
+|   |-- Roadmap.md
+|   |-- Risk_Register.md
+|-- 16_Changelog
+|   |-- CHANGELOG.md
+|-- 17_User_Guides
+|   |-- User_Guide.md
+|   |-- Admin_Guide.md
+|   |-- FAQ.md</pre>
+
+    <h3>Review Summary</h3>
+    <table class="compact">
+      <tr><th>Area</th><th>Status</th><th>Next Action</th></tr>
+      <tr><td>Architecture</td><td>Strong MVP separation with React frontend, Express API, MySQL, MongoDB, Docker.</td><td>Harden deployment, add queue/cache/object storage if production traffic grows.</td></tr>
+      <tr><td>Features</td><td>Broad LMS/DMS feature coverage across roles.</td><td>Prioritize polish and acceptance tests for most-used workflows.</td></tr>
+      <tr><td>Security</td><td>Good foundations; important gaps remain.</td><td>Rotate exposed secret, fix production secret policy, improve token/upload hardening.</td></tr>
+      <tr><td>Testing</td><td>Typecheck passes; automated tests absent.</td><td>Add unit/integration/E2E suites and CI gates.</td></tr>
+      <tr><td>Documentation</td><td>Existing docs are partial; this PDF consolidates enterprise sections.</td><td>Split this document into the recommended docs tree if long-term maintenance is needed.</td></tr>
+    </table>
+
+    <h3>Reviewed Local Sources</h3>
+    <p class="small">
+      <code>README.md</code>, <code>.env.example</code>, <code>docker-compose.yml</code>, <code>docs/project-plan.md</code>, <code>docs/erd.md</code>, <code>docs/api-docs.md</code>, <code>docs/database-setup.md</code>, <code>project-management/sprint-plan.md</code>, <code>backend/package.json</code>, <code>backend/src/app.ts</code>, <code>backend/src/server.ts</code>, <code>backend/src/config/env.ts</code>, <code>backend/src/modules/*</code>, <code>backend/src/database/*</code>, <code>backend/database/*.sql</code>, <code>backend/docs/openapi.yaml</code>, <code>frontend/package.json</code>, <code>frontend/src/App.tsx</code>, <code>frontend/src/components/layout/AppShell.tsx</code>, <code>frontend/src/pages/*</code>, <code>frontend/src/services/api.ts</code>, and <code>frontend/src/types/index.ts</code>.
+    </p>
+  </section>
+</body>
+</html>
